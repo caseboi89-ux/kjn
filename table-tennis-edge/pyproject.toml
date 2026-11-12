@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ttedge"
+version = "0.1.0"
+description = "Find mispriced table tennis betting lines: point-level pricing model, ratings, line scanner, backtester and dashboard."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+ttedge = "ttedge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ttedge = ["static/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
