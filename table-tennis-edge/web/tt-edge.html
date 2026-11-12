@@ -1,0 +1,1637 @@
+<title>TT Edge</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: a scanner console. Header with live board status, tabbed workspaces, dense tables first, charts in the backtest. */
+:root {
+  --bg: #f5f6f4;
+  --surface: #fdfdfc;
+  --surface-2: #eef0ec;
+  --line: #dfe2dc;
+  --ink: #101411;
+  --ink-2: #4c534d;
+  --ink-3: #7a817b;
+  --accent: #1d5fb8;          /* tournament-table blue */
+  --accent-ink: #ffffff;
+  --ball: #e8742a;            /* match-ball orange, used sparingly */
+  --good: #13803a;
+  --good-bg: #e2f3e6;
+  --warn: #8a5800;
+  --warn-bg: #fbefd2;
+  --bad: #b3332f;
+  --bad-bg: #fae4e2;
+  --grid: #e6e8e3;
+  --shadow: 0 1px 2px rgba(16, 20, 17, .05), 0 3px 10px rgba(16, 20, 17, .04);
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1311; --surface: #161b18; --surface-2: #1e2420; --line: #2c3430;
+    --ink: #eef1ee; --ink-2: #bcc4be; --ink-3: #87908a;
+    --accent: #5b9bf0; --accent-ink: #08111f; --ball: #f08a45;
+    --good: #5fcf7e; --good-bg: #173322; --warn: #f0c060; --warn-bg: #3a2f14; --bad: #f08a84; --bad-bg: #3d1d1b;
+    --grid: #252c28; --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1311; --surface: #161b18; --surface-2: #1e2420; --line: #2c3430;
+  --ink: #eef1ee; --ink-2: #bcc4be; --ink-3: #87908a;
+  --accent: #5b9bf0; --accent-ink: #08111f; --ball: #f08a45;
+  --good: #5fcf7e; --good-bg: #173322; --warn: #f0c060; --warn-bg: #3a2f14; --bad: #f08a84; --bad-bg: #3d1d1b;
+  --grid: #252c28; --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-body); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 0 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 18px 0 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { font: 700 22px/1.1 var(--font-display); margin: 0; letter-spacing: -.02em; }
+.brand h1 i { font-style: normal; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--ball); margin-left: 3px; transform: translateY(-1px); }
+.brand span { color: var(--ink-3); font-size: 13px; }
+.status { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
+.badge.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.badge.busy::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--accent); border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .badge.busy::before { animation: none; } }
+.spacer { flex: 1; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; }
+button:hover { border-color: var(--ink-3); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+button:disabled { opacity: .55; cursor: progress; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input, select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; min-width: 0; }
+a { color: var(--accent); }
+nav { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; scrollbar-width: thin; }
+nav button { border: 0; border-radius: 0; background: none; padding: 10px 14px; color: var(--ink-2); border-bottom: 2px solid transparent; white-space: nowrap; }
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px; min-width: 0; }
+.card h2 { font: 600 16px/1.3 var(--font-display); margin: 0 0 4px; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 600 11.5px/1.3 var(--font-body); margin: 16px 0 6px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; }
+.hint { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; max-width: 78ch; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin-bottom: 12px; }
+.filters label, .form label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+.check { flex-direction: row !important; align-items: center; gap: 6px !important; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; max-width: 100%; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); }
+th[data-sort] { cursor: pointer; user-select: none; }
+th[data-sort]:hover { color: var(--ink); }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover td, tbody tr.click:focus-visible td { background: var(--surface-2); }
+td.num, th.num { text-align: right; }
+td.wrap { white-space: normal; min-width: 170px; }
+.sub { color: var(--ink-3); font-size: 12px; }
+.pos { color: var(--good); font-weight: 600; }
+.neg { color: var(--bad); }
+.muted { color: var(--ink-3); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin: 1px 3px 1px 0; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.chip.good { background: var(--good-bg); color: var(--good); border-color: transparent; }
+.chip.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.chip.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: 12px; color: var(--ink-2); }
+.tile .v { font: 600 23px/1.2 var(--font-display); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.form { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr)); gap: 12px; }
+.form input, .form select { width: 100%; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; }
+.drop.over { border-color: var(--accent); background: var(--surface-2); }
+.drop .row b { min-width: 70px; }
+.errors { max-height: 200px; overflow: auto; font: 12px/1.5 var(--font-mono); color: var(--bad); }
+pre.tpl { font: 12px/1.5 var(--font-mono); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto; margin: 6px 0; user-select: all; }
+.empty { padding: 28px; text-align: center; color: var(--ink-3); white-space: normal; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .axis text { fill: var(--ink-3); font-size: 11px; font-family: var(--font-body); }
+.chart .gridline { stroke: var(--grid); stroke-width: 1; }
+.chart .zero { stroke: var(--ink-3); stroke-width: 1; }
+.tooltip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px;
+  font-size: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, .15); white-space: nowrap; z-index: 5; }
+.progress { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin: 10px 0; }
+.progress > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; background: var(--surface); color: var(--ink);
+  width: min(1100px, calc(100vw - 24px)); max-height: calc(100vh - 48px); }
+dialog::backdrop { background: rgba(0, 0, 0, .45); }
+.dlg-head { display: flex; align-items: start; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); z-index: 2; }
+.dlg-head h2 { font: 600 17px/1.3 var(--font-display); margin: 0; }
+.dlg-body { padding: 16px; }
+.notice { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 16px; }
+.notice b { color: inherit; }
+footer { color: var(--ink-3); font-size: 12px; margin-top: 24px; max-width: 90ch; }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand"><h1>TT Edge<i aria-hidden="true"></i></h1><span>table tennis line scanner</span></div>
+  <div class="status" id="status"><span class="badge busy">Building demo board…</span></div>
+  <div class="spacer"></div>
+  <button id="themeBtn" type="button" title="Switch light and dark">Theme</button>
+</header>
+
+<nav role="tablist" id="tabs" aria-label="Sections">
+  <button role="tab" type="button" data-tab="bets" aria-selected="true">Value bets</button>
+  <button role="tab" type="button" data-tab="arbs" aria-selected="false">Arbitrage</button>
+  <button role="tab" type="button" data-tab="matches" aria-selected="false">Matches</button>
+  <button role="tab" type="button" data-tab="pricer" aria-selected="false">Pricer</button>
+  <button role="tab" type="button" data-tab="ratings" aria-selected="false">Ratings</button>
+  <button role="tab" type="button" data-tab="backtest" aria-selected="false">Backtest</button>
+  <button role="tab" type="button" data-tab="data" aria-selected="false">Data &amp; settings</button>
+</nav>
+
+<div class="notice" id="demoNotice"><b>Demo board.</b> These are fictional players and bookmakers generated in your browser so you can see how the
+  scanner works. Load your own odds and results on the <a href="#" data-goto="data">Data &amp; settings</a> tab to scan real prices.</div>
+
+<section class="panel" id="panel-bets">
+  <div class="card">
+    <div class="row"><h2>Mispriced lines</h2><div class="spacer"></div><button type="button" id="exportBets" hidden>Save as CSV</button></div>
+    <p class="hint">Prices that beat fair value. Fair value comes from the other books' margin-free prices, the point model and,
+      once players have enough history, the ratings. <b>Edge</b> is expected profit per unit staked. <b>Stake</b> is quarter Kelly,
+      capped, as a share of bankroll. Select a row to see the whole match board.</p>
+    <div class="filters">
+      <label>Min edge %<input type="number" id="fEdge" step="0.5" value="3"></label>
+      <label>Market<select id="fMarket"><option value="">All markets</option></select></label>
+      <label>Book<select id="fBook"><option value="">All books</option></select></label>
+      <label>Player or tournament<input type="search" id="fText" placeholder="Search"></label>
+      <label class="check"><input type="checkbox" id="fConsistent"> Only derivative inconsistencies</label>
+    </div>
+    <div class="table-wrap"><table id="betsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-arbs" hidden>
+  <div class="card">
+    <h2>Cross-book arbitrage</h2>
+    <p class="hint">Best prices across books whose implied chances add up to under 100%. Splitting the stake as shown returns the same
+      amount whoever wins. Soft-book arbs are often stale lines that get voided or cut, so check limits and retirement rules first.</p>
+    <div class="table-wrap"><table id="arbsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-matches" hidden>
+  <div class="card">
+    <h2>Matches on the board</h2>
+    <p class="hint">Fair match price from the blended point-win probability. Select a match to compare every book's price with fair value.</p>
+    <div class="filters"><label>Search<input type="search" id="mText" placeholder="Player or tournament"></label></div>
+    <div class="table-wrap"><table id="matchesTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-pricer" hidden>
+  <div class="card">
+    <h2>Match pricer</h2>
+    <p class="hint">Enter a match-winner price pair (decimal, American like +150, or fractional like 5/2). The margin comes off, the fair price
+      becomes a point-win probability, and every other market is priced from it. You can also enter the point probability directly.</p>
+    <form class="filters" id="pForm">
+      <label>Player A price<input id="pA" value="1.62" size="7" inputmode="decimal"></label>
+      <label>Player B price<input id="pB" value="2.35" size="7" inputmode="decimal"></label>
+      <label>or P(A wins a point)<input id="pP" placeholder="e.g. 0.53" size="9" inputmode="decimal"></label>
+      <label>Format<select id="pBo"><option value="5">Best of 5</option><option value="7">Best of 7</option></select></label>
+      <label>Game sigma<input type="number" id="pSig" step="0.05" min="0" value="0.1"></label>
+      <label>Margin removal<select id="pDevig"><option>power</option><option>shin</option><option>multiplicative</option><option>additive</option></select></label>
+      <button class="primary" type="submit">Price it</button>
+    </form>
+    <div id="pOut"></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-ratings" hidden>
+  <div class="card">
+    <h2>Player ratings</h2>
+    <p class="hint">Learned from every point in the results. <b>P(point) v avg</b> is the chance of winning a point against an average player.
+      Small gaps matter: 52% per point is about 64% per best-of-5 match.</p>
+    <div class="filters">
+      <label>Search<input type="search" id="rText" placeholder="Player"></label>
+      <label>Min matches<input type="number" id="rMin" value="5" min="0"></label>
+    </div>
+    <div class="table-wrap"><table id="ratingsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-backtest" hidden>
+  <div class="card">
+    <div class="row"><h2>Walk-forward backtest</h2><div class="spacer"></div><button class="primary" type="button" id="btGo">Run backtest</button></div>
+    <p class="hint" style="margin-top:8px">Replays past matches in time order. Ratings only know earlier results, bets take the opening prices,
+      and closing prices measure closing-line value (CLV). CLV tells you sooner and more reliably than profit whether the method finds real mispricing.</p>
+    <div id="btOut"><div class="empty">Run the backtest to replay the history (about ten seconds for the demo).</div></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-data" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>Load your data</h2>
+      <p class="hint">Files are read in this browser tab only and are not uploaded anywhere. Results train the ratings. Odds rows with
+        <code>snapshot</code> = <code>current</code> are scanned (or <code>close</code> when there are none).</p>
+      <div class="drop" id="drop">
+        <div class="row"><b>Results</b><input type="file" id="upResults" accept=".csv,text/csv"></div>
+        <div class="row"><b>Odds</b><input type="file" id="upOdds" accept=".csv,text/csv"></div>
+        <div class="sub">Or drop CSV files here. A file with a <code>score</code> column is read as results.</div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="demoBtn">Reload demo board</button>
+        <button type="button" id="clearBtn">Clear all data</button>
+      </div>
+      <div id="dataMsg" class="hint" style="margin-top:10px" role="status"></div>
+      <div id="errors" class="errors"></div>
+      <h3>Results format</h3>
+      <pre class="tpl" id="tplResults"></pre>
+      <h3>Odds format</h3>
+      <pre class="tpl" id="tplOdds"></pre>
+      <div class="row"><button type="button" id="copyTpl">Copy odds template</button><button type="button" id="saveTpl" hidden>Save both templates</button><span id="tplMsg" class="sub"></span></div>
+      <p class="hint" style="margin-top:10px">Markets: ML, GAME_HCP, GAMES_TOTAL, CORRECT_SCORE, POINTS_TOTAL, POINTS_HCP, G1_ML, G1_POINTS_TOTAL
+        (aliases such as moneyline or set handicap work). Selections: A/B, home/away or a player's name, OVER/UNDER, or a score like 3-1.
+        Handicap lines are from the selection's side (B +1.5).</p>
+    </div>
+    <div class="card">
+      <h2>Settings</h2>
+      <p class="hint">Applying re-runs the scan. Settings are remembered in this browser.</p>
+      <form class="form" id="settings"></form>
+      <div class="row" style="margin-top:12px"><button class="primary" type="button" id="saveCfg">Apply</button>
+        <button type="button" id="resetCfg">Reset to defaults</button><span id="cfgMsg" class="sub" role="status"></span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Fair prices are estimates. A bet with positive edge still loses often, soft books limit winning accounts, and several high-volume table tennis
+  leagues have had match-fixing investigations. Bet only where it is legal for you and only what you can afford to lose.
+  Help: begambleaware.org · 1-800-GAMBLER (US).
+</footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <div class="dlg-head"><div id="dlgTitle" style="flex:1;min-width:0"></div><button type="button" id="dlgClose">Close</button></div>
+  <div class="dlg-body" id="dlgBody"></div>
+</dialog>
+
+<script>
+/* TT Edge engine: browser port of the Python ttedge package (odds, point model,
+   ratings, scanner, backtest, synthetic demo). No dependencies. */
+(function (root) {
+"use strict";
+
+// ====================================================================== odds
+const logit = (p) => { p = Math.min(Math.max(p, 1e-9), 1 - 1e-9); return Math.log(p / (1 - p)); };
+const sigmoid = (x) => x >= 0 ? 1 / (1 + Math.exp(-x)) : Math.exp(x) / (1 + Math.exp(x));
+
+function bisect(f, lo, hi, iters = 56) {
+  let flo = f(lo);
+  for (let i = 0; i < iters; i++) {
+    const mid = 0.5 * (lo + hi), fm = f(mid);
+    if ((fm > 0) === (flo > 0)) { lo = mid; flo = fm; } else hi = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+
+function americanToDecimal(a) {
+  if (a > -100 && a < 100) throw new Error(`invalid American odds: ${a}`);
+  return 1 + (a > 0 ? a / 100 : 100 / -a);
+}
+
+function parsePrice(value) {
+  let price;
+  if (typeof value === "number") price = value;
+  else {
+    const t = String(value ?? "").trim();
+    if (!t) throw new Error("empty price");
+    if (t.includes("/")) { const [n, d] = t.split("/"); price = 1 + parseFloat(n) / parseFloat(d); }
+    else if (t[0] === "+" || t[0] === "-") price = americanToDecimal(parseFloat(t));
+    else price = Number(t);
+  }
+  if (!isFinite(price) || price <= 1) throw new Error(`price must be decimal odds above 1.0, got "${value}"`);
+  return price;
+}
+
+const DEVIG_METHODS = ["power", "shin", "multiplicative", "additive"];
+
+function devig(prices, method = "power") {
+  const pi = prices.map((p) => 1 / p), total = pi.reduce((a, b) => a + b, 0), n = pi.length;
+  const norm = (arr) => { const s = arr.reduce((a, b) => a + b, 0); return arr.map((x) => x / s); };
+  if (method === "multiplicative") return pi.map((x) => x / total);
+  if (method === "additive") return norm(pi.map((x) => Math.max(x - (total - 1) / n, 1e-9)));
+  if (method === "power") {
+    if (Math.abs(total - 1) < 1e-12) return pi.slice();
+    const k = bisect((k) => pi.reduce((a, x) => a + x ** k, 0) - 1, 1e-3, 50);
+    return norm(pi.map((x) => x ** k));
+  }
+  if (method === "shin") {
+    if (total <= 1) return pi.map((x) => x / total);
+    const probs = (z) => pi.map((x) => (Math.sqrt(z * z + 4 * (1 - z) * x * x / total) - z) / (2 * (1 - z)));
+    const z = bisect((z) => probs(z).reduce((a, b) => a + b, 0) - 1, 0, 0.999);
+    return norm(probs(z));
+  }
+  throw new Error(`unknown margin method ${method}`);
+}
+
+function applyMargin(probs, margin) {
+  if (margin <= 0) return probs.map((p) => 1 / p);
+  const e = bisect((e) => probs.reduce((a, p) => a + p ** e, 0) - (1 + margin), 1e-3, 1);
+  return probs.map((p) => 1 / p ** e);
+}
+const expectedValue = (price, pWin, pPush = 0) => pWin * (price - 1) - Math.max(0, 1 - pWin - pPush);
+const fairPrice = (pWin, pPush = 0) => pWin <= 0 ? Infinity : 1 + Math.max(0, 1 - pWin - pPush) / pWin;
+function kellyFraction(price, pWin, pPush = 0) {
+  const b = price - 1, pLose = Math.max(0, 1 - pWin - pPush);
+  if (b <= 0 || pWin + pLose <= 0) return 0;
+  return Math.max(0, (b * pWin - pLose) / (b * (pWin + pLose)));
+}
+
+// =================================================================== markets
+const ML = "ML", GAME_HCP = "GAME_HCP", GAMES_TOTAL = "GAMES_TOTAL", CORRECT_SCORE = "CORRECT_SCORE",
+  POINTS_TOTAL = "POINTS_TOTAL", POINTS_HCP = "POINTS_HCP", G1_ML = "G1_ML", G1_POINTS_TOTAL = "G1_POINTS_TOTAL";
+const MARKETS = [ML, GAME_HCP, GAMES_TOTAL, CORRECT_SCORE, POINTS_TOTAL, POINTS_HCP, G1_ML, G1_POINTS_TOTAL];
+const SIDE = new Set([ML, G1_ML]), HCP = new Set([GAME_HCP, POINTS_HCP]),
+  TOTAL = new Set([GAMES_TOTAL, POINTS_TOTAL, G1_POINTS_TOTAL]), POINT_MKTS = new Set([POINTS_TOTAL, POINTS_HCP, G1_POINTS_TOTAL]);
+const LINE_MKTS = new Set([...HCP, ...TOTAL]);
+const MARKET_LABELS = { ML: "Match winner", GAME_HCP: "Game handicap", GAMES_TOTAL: "Total games", CORRECT_SCORE: "Correct score",
+  POINTS_TOTAL: "Total points", POINTS_HCP: "Point handicap", G1_ML: "Game 1 winner", G1_POINTS_TOTAL: "Game 1 points" };
+const MARKET_ALIASES = {
+  ml: ML, moneyline: ML, match_winner: ML, winner: ML, h2h: ML, match: ML, "12": ML,
+  game_handicap: GAME_HCP, set_handicap: GAME_HCP, sets_handicap: GAME_HCP, games_handicap: GAME_HCP, handicap: GAME_HCP, game_hcp: GAME_HCP, spread: GAME_HCP,
+  games_total: GAMES_TOTAL, total_games: GAMES_TOTAL, total_sets: GAMES_TOTAL, sets_total: GAMES_TOTAL, totals: GAMES_TOTAL,
+  correct_score: CORRECT_SCORE, exact_score: CORRECT_SCORE, cs: CORRECT_SCORE,
+  points_total: POINTS_TOTAL, total_points: POINTS_TOTAL,
+  points_hcp: POINTS_HCP, points_handicap: POINTS_HCP, point_handicap: POINTS_HCP,
+  g1_ml: G1_ML, first_game_winner: G1_ML, game1_winner: G1_ML, set1_winner: G1_ML,
+  g1_points_total: G1_POINTS_TOTAL, first_game_total_points: G1_POINTS_TOTAL, game1_total_points: G1_POINTS_TOTAL,
+};
+const SELECTION_ALIASES = { a: "A", home: "A", "1": "A", p1: "A", player_a: "A", player1: "A",
+  b: "B", away: "B", "2": "B", p2: "B", player_b: "B", player2: "B", over: "OVER", o: "OVER", under: "UNDER", u: "UNDER" };
+
+function normalizeMarket(v) {
+  const key = String(v).trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (MARKETS.includes(key.toUpperCase())) return key.toUpperCase();
+  if (key in MARKET_ALIASES) return MARKET_ALIASES[key];
+  throw new Error(`unknown market "${v}"`);
+}
+function normalizeSelection(v, a = "", b = "") {
+  const t = String(v).trim(), k = t.toLowerCase();
+  if (k in SELECTION_ALIASES) return SELECTION_ALIASES[k];
+  if (a && k === a.trim().toLowerCase()) return "A";
+  if (b && k === b.trim().toLowerCase()) return "B";
+  const m = t.match(/^(\d)\s*[-:]\s*(\d)$/);
+  if (m) return `${m[1]}-${m[2]}`;
+  throw new Error(`unknown selection "${v}"`);
+}
+function swapSelection(market, sel) {
+  if (sel === "A") return "B";
+  if (sel === "B") return "A";
+  if (market === CORRECT_SCORE) { const [a, b] = sel.split("-"); return `${b}-${a}`; }
+  return sel;
+}
+function gamesToWin(bo) { if (bo % 2 === 0 || bo < 1) throw new Error(`best_of must be odd, got ${bo}`); return Math.floor(bo / 2) + 1; }
+function correctScoreSelections(bo) { const w = gamesToWin(bo), out = []; for (let k = 0; k < w; k++) out.push(`${w}-${k}`); for (let k = 0; k < w; k++) out.push(`${k}-${w}`); return out; }
+const r3 = (x) => Math.round(x * 1000) / 1000;
+function groupKey(market, sel, line) {
+  if (HCP.has(market)) return `${market}|${r3(sel === "A" ? line : -line)}`;
+  if (TOTAL.has(market)) return `${market}|${r3(line)}`;
+  return `${market}|`;
+}
+function parseGroupKey(gk) { const [m, l] = gk.split("|"); return [m, l === "" ? null : parseFloat(l)]; }
+function groupSelections(market, bo) {
+  if (SIDE.has(market) || HCP.has(market)) return ["A", "B"];
+  if (TOTAL.has(market)) return ["OVER", "UNDER"];
+  if (market === CORRECT_SCORE) return correctScoreSelections(bo);
+  throw new Error(market);
+}
+const selectionLine = (market, sel, gl) => HCP.has(market) ? (sel === "A" ? gl : -gl) : gl;
+const fmtLine = (x) => (x > 0 ? "+" : "") + (+x.toFixed(3));
+function describe(market, sel, line, a = "A", b = "B") {
+  const who = { A: a, B: b };
+  if (market === ML) return `${who[sel]} to win`;
+  if (market === G1_ML) return `${who[sel]} to win game 1`;
+  if (HCP.has(market)) return `${who[sel]} ${fmtLine(line)} ${market === GAME_HCP ? "games" : "points"}`;
+  if (TOTAL.has(market)) {
+    const unit = { GAMES_TOTAL: "games", POINTS_TOTAL: "points", G1_POINTS_TOTAL: "points in game 1" }[market];
+    return `${sel === "OVER" ? "Over" : "Under"} ${+line.toFixed(3)} ${unit}`;
+  }
+  if (market === CORRECT_SCORE) return `${a} ${sel} ${b}`;
+  return `${market} ${sel} ${line}`;
+}
+
+class MatchScore {
+  constructor(ga, gb, games = []) { this.ga = ga; this.gb = gb; this.games = games; }
+  get hasPoints() { return this.games.length > 0; }
+  get pointsA() { return this.games.reduce((s, g) => s + g[0], 0); }
+  get pointsB() { return this.games.reduce((s, g) => s + g[1], 0); }
+  swapped() { return new MatchScore(this.gb, this.ga, this.games.map(([a, b]) => [b, a])); }
+  toString() { return this.games.length ? this.games.map(([a, b]) => `${a}-${b}`).join(" ") : `${this.ga}-${this.gb}`; }
+}
+function validGame(a, b) { const hi = Math.max(a, b), lo = Math.min(a, b); if (hi < 11) return false; if (hi === 11) return lo <= 9; return hi - lo === 2; }
+function parseScore(text) {
+  let pairs = [...String(text || "").matchAll(/(\d+)\s*[-:]\s*(\d+)/g)].map((m) => [+m[1], +m[2]]);
+  if (!pairs.length) throw new Error(`no score found in "${text}"`);
+  let summary = null;
+  if (Math.max(...pairs[0]) < 11) { summary = pairs[0]; pairs = pairs.slice(1); }
+  for (const [a, b] of pairs) if (!validGame(a, b)) throw new Error(`invalid game score ${a}-${b} in "${text}"`);
+  if (pairs.length) {
+    const ga = pairs.filter(([a, b]) => a > b).length, gb = pairs.length - ga;
+    if (summary && (summary[0] !== ga || summary[1] !== gb)) throw new Error(`summary disagrees with game scores in "${text}"`);
+    return new MatchScore(ga, gb, pairs);
+  }
+  if (summary[0] === summary[1] || Math.max(...summary) > 4) throw new Error(`invalid match score "${text}"`);
+  return new MatchScore(summary[0], summary[1]);
+}
+function cmp(v, line) { return Math.abs(v - line) < 1e-9 ? "push" : v > line ? "win" : "lose"; }
+function settle(market, sel, line, s) {
+  if ((POINT_MKTS.has(market) || market === G1_ML) && !s.hasPoints) return null;
+  if (market === ML) return (s.ga > s.gb) === (sel === "A") ? "win" : "lose";
+  if (market === G1_ML) { const [a, b] = s.games[0]; return (a > b) === (sel === "A") ? "win" : "lose"; }
+  if (market === CORRECT_SCORE) return sel === `${s.ga}-${s.gb}` ? "win" : "lose";
+  if (HCP.has(market)) {
+    let d = market === GAME_HCP ? s.ga - s.gb : s.pointsA - s.pointsB;
+    if (sel === "B") d = -d;
+    return cmp(d + line, 0);
+  }
+  if (TOTAL.has(market)) {
+    const t = market === GAMES_TOTAL ? s.ga + s.gb : market === POINTS_TOTAL ? s.pointsA + s.pointsB : s.games[0][0] + s.games[0][1];
+    const r = cmp(t, line);
+    if (r === "push" || sel === "OVER") return r;
+    return r === "lose" ? "win" : "lose";
+  }
+  throw new Error(`cannot settle ${market}`);
+}
+
+// ==================================================================== markov
+const DEUCE_CAP = 25, N_LOSER = 11 + DEUCE_CAP, MAX_MARGIN = 11;
+const WINNER_PTS = [], GAME_TOTAL = [], GAME_MARGIN = [];
+for (let l = 0; l < N_LOSER; l++) { const w = l <= 9 ? 11 : l + 2; WINNER_PTS.push(w); GAME_TOTAL.push(w + l); GAME_MARGIN.push(w - l); }
+const MAX_GAME_TOTAL = Math.max(...GAME_TOTAL);
+const GH_X = [-3.6684708465595826, -2.7832900997816514, -2.0259480158257555, -1.3265570844949328, -0.6568095668820998, 0,
+  0.6568095668820998, 1.3265570844949328, 2.0259480158257555, 2.7832900997816514, 3.6684708465595826];
+const GH_W = [1.4395603937142596e-06, 0.00034681946632334544, 0.011911395444911507, 0.11722787516770851, 0.42935975235612495,
+  0.6547592869145916, 0.42935975235612495, 0.11722787516770851, 0.011911395444911507, 0.00034681946632334544, 1.4395603937142596e-06]
+  .map((w) => w / Math.sqrt(Math.PI));
+const COMB = []; { for (let k = 0; k < 10; k++) { let c = 1; for (let i = 1; i <= k; i++) c = c * (10 + i) / i; COMB.push(c); } }
+const C2010 = 184756;
+
+function winByLoserPoints(p) {
+  const q = 1 - p, out = new Float64Array(N_LOSER), p11 = p ** 11;
+  for (let k = 0; k < 10; k++) out[k] = COMB[k] * p11 * q ** k;
+  const base = C2010 * p ** 10 * q ** 10 * p * p, r = 2 * p * q;
+  let f = 1;
+  for (let j = 0; j <= DEUCE_CAP; j++) { out[10 + j] = base * f; f *= r; }
+  return out;
+}
+function pointProbs(p, sigma) {
+  if (sigma <= 0) return [[p, 1]];
+  const lp = logit(p);
+  return GH_X.map((x, i) => [sigmoid(lp + Math.SQRT2 * sigma * x), GH_W[i]]);
+}
+function gameOutcomes(p, sigma = 0) {
+  const winA = new Float64Array(N_LOSER), winB = new Float64Array(N_LOSER);
+  for (const [pp, w] of pointProbs(p, sigma)) {
+    const a = winByLoserPoints(pp), b = winByLoserPoints(1 - pp);
+    for (let i = 0; i < N_LOSER; i++) { winA[i] += w * a[i]; winB[i] += w * b[i]; }
+  }
+  let t = 0; for (let i = 0; i < N_LOSER; i++) t += winA[i] + winB[i];
+  for (let i = 0; i < N_LOSER; i++) { winA[i] /= t; winB[i] /= t; }
+  return [winA, winB];
+}
+function gameWinProb(p, sigma = 0) {
+  let total = 0;
+  for (const [pp, w] of pointProbs(p, sigma)) {
+    const q = 1 - pp, p11 = pp ** 11;
+    let reg = 0; for (let k = 0; k < 10; k++) reg += COMB[k] * p11 * q ** k;
+    const deuce = C2010 * pp ** 12 * q ** 10 / (pp * pp + q * q);
+    total += w * (reg + deuce);
+  }
+  return total;
+}
+function matchWinProbFromGame(g, bo = 5) {
+  const w = gamesToWin(bo); let s = 0, c = 1;
+  for (let k = 0; k < w; k++) { if (k > 0) c = c * (w - 1 + k) / k; s += c * g ** w * (1 - g) ** k; }
+  return s;
+}
+const matchWinProb = (p, bo = 5, sigma = 0) => matchWinProbFromGame(gameWinProb(p, sigma), bo);
+
+const INV_TABLES = new Map();
+function inverseTable(bo, sigma) {
+  const key = `${bo}|${sigma}`;
+  if (INV_TABLES.has(key)) return INV_TABLES.get(key);
+  const n = 2001, lm = new Float64Array(n), lp = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    lp[i] = -2.5 + 5 * i / (n - 1);
+    let m = matchWinProb(sigmoid(lp[i]), bo, sigma);
+    m = Math.min(Math.max(m, 1e-15), 1 - 1e-15);
+    lm[i] = Math.log(m / (1 - m));
+  }
+  const t = [lm, lp]; INV_TABLES.set(key, t); return t;
+}
+function interp(x, xs, ys) {
+  if (x <= xs[0]) return ys[0];
+  const n = xs.length; if (x >= xs[n - 1]) return ys[n - 1];
+  let lo = 0, hi = n - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (xs[mid] <= x) lo = mid; else hi = mid; }
+  const t = (x - xs[lo]) / (xs[hi] - xs[lo] || 1);
+  return ys[lo] + t * (ys[hi] - ys[lo]);
+}
+function pointProbFromMatchProb(m, bo = 5, sigma = 0) {
+  m = Math.min(Math.max(m, 1e-6), 1 - 1e-6);
+  const [lm, lpg] = inverseTable(bo, Math.round(sigma * 1e4) / 1e4);
+  let p = sigmoid(interp(Math.log(m / (1 - m)), lm, lpg));
+  for (let it = 0; it < 2; it++) {
+    const eps = 1e-6, f0 = matchWinProb(p, bo, sigma) - m;
+    const slope = (matchWinProb(p + eps, bo, sigma) - matchWinProb(p - eps, bo, sigma)) / (2 * eps);
+    if (slope > 0) p = Math.min(Math.max(p - f0 / slope, 1e-4), 1 - 1e-4);
+  }
+  return p;
+}
+
+function conv(a, b) {
+  const out = new Float64Array(a.length + b.length - 1);
+  for (let i = 0; i < a.length; i++) { const ai = a[i]; if (ai === 0) continue; for (let j = 0; j < b.length; j++) out[i + j] += ai * b[j]; }
+  return out;
+}
+function threshold(vals, probs, line) {
+  let over = 0, push = 0, under = 0, tot = 0;
+  for (let i = 0; i < vals.length; i++) {
+    const v = vals[i], p = probs[i]; tot += p;
+    if (v > line + 1e-9) over += p; else if (Math.abs(v - line) <= 1e-9) push += p; else under += p;
+  }
+  return [over / tot, push / tot, under / tot];
+}
+
+class MatchModel {
+  constructor(p, bo = 5, sigma = 0) {
+    if (!(p > 0 && p < 1)) throw new Error("point probability must be between 0 and 1");
+    this.pPoint = p; this.bestOf = bo; this.sigma = sigma;
+    const w = gamesToWin(bo), [winA, winB] = gameOutcomes(p, sigma);
+    let g = 0; for (let i = 0; i < N_LOSER; i++) g += winA[i];
+    this.pGame = g;
+    const totA = new Float64Array(MAX_GAME_TOTAL + 1), totB = new Float64Array(MAX_GAME_TOTAL + 1);
+    const difA = new Float64Array(2 * MAX_MARGIN + 1), difB = new Float64Array(2 * MAX_MARGIN + 1);
+    for (let l = 0; l < N_LOSER; l++) {
+      totA[GAME_TOTAL[l]] += winA[l]; totB[GAME_TOTAL[l]] += winB[l];
+      difA[MAX_MARGIN + GAME_MARGIN[l]] += winA[l]; difB[MAX_MARGIN - GAME_MARGIN[l]] += winB[l];
+    }
+    this.g1Total = totA.map((v, i) => v + totB[i]);
+    let layer = new Map([["0,0", { a: 0, b: 0, pr: 1, tv: new Float64Array([1]), dv: new Float64Array([1]) }]]);
+    const terminal = [];
+    while (layer.size) {
+      const next = new Map();
+      for (const s of layer.values()) {
+        for (const [na, nb, step, tvec, dvec] of [[s.a + 1, s.b, g, totA, difA], [s.a, s.b + 1, 1 - g, totB, difB]]) {
+          // tvec/dvec already carry the game's win probability, so the
+          // convolved vectors stay joint (they sum to the state's probability)
+          const key = `${na},${nb}`, t = conv(s.tv, tvec), d = conv(s.dv, dvec);
+          const cur = next.get(key);
+          if (cur) { cur.pr += s.pr * step; addInto(cur.tv, t); addInto(cur.dv, d); }
+          else next.set(key, { a: na, b: nb, pr: s.pr * step, tv: t, dv: d });
+        }
+      }
+      layer = new Map();
+      for (const [k, s] of next) { if (s.a === w || s.b === w) terminal.push(s); else layer.set(k, s); }
+    }
+    terminal.sort((x, y) => x.a - y.a || x.b - y.b);
+    this.scores = {}; this.scoreList = [];
+    let pm = 0, maxT = 0;
+    for (const s of terminal) { this.scores[`${s.a}-${s.b}`] = s.pr; this.scoreList.push([s.a, s.b, s.pr]); if (s.a === w) pm += s.pr; maxT = Math.max(maxT, s.tv.length); }
+    this.pMatch = pm;
+    const span = MAX_MARGIN * bo, totals = new Float64Array(maxT), diffs = new Float64Array(2 * span + 1);
+    for (const s of terminal) {
+      for (let i = 0; i < s.tv.length; i++) totals[i] += s.tv[i];
+      const off = MAX_MARGIN * (s.a + s.b), start = span - off;
+      for (let i = 0; i < s.dv.length; i++) diffs[start + i] += s.dv[i];
+    }
+    this.totals = totals; this.totalVals = totals.map((_, i) => i);
+    this.diffs = diffs; this.diffVals = diffs.map((_, i) => i - span);
+  }
+  dist(market) {
+    if (market === GAME_HCP) return [this.scoreList.map(([a, b]) => a - b), this.scoreList.map((s) => s[2])];
+    if (market === GAMES_TOTAL) return [this.scoreList.map(([a, b]) => a + b), this.scoreList.map((s) => s[2])];
+    if (market === POINTS_TOTAL) return [this.totalVals, this.totals];
+    if (market === POINTS_HCP) return [this.diffVals, this.diffs];
+    if (market === G1_POINTS_TOTAL) return [this.g1Total.map((_, i) => i), this.g1Total];
+    throw new Error(market);
+  }
+  expectedPoints() { let s = 0, t = 0; this.totals.forEach((p, i) => { s += p * i; t += p; }); return s / t; }
+  medianLine(market) {
+    const [vals, probs] = this.dist(market);
+    const tot = probs.reduce((a, b) => a + b, 0);
+    let c = 0, idx = 0;
+    for (; idx < probs.length; idx++) { c += probs[idx] / tot; if (c >= 0.5) break; }
+    const lo = vals[idx] - 0.5, hi = lo + 1;
+    const pLo = threshold(vals, probs, lo)[0], pHi = threshold(vals, probs, hi)[0];
+    return Math.abs(pLo - 0.5) <= Math.abs(pHi - 0.5) ? lo : hi;
+  }
+  outcome(market, sel, line = null) {
+    if (market === ML || market === G1_ML) { const pa = market === ML ? this.pMatch : this.pGame; return sel === "A" ? [pa, 0, 1 - pa] : [1 - pa, 0, pa]; }
+    if (market === CORRECT_SCORE) { const pr = this.scores[sel] || 0; return [pr, 0, 1 - pr]; }
+    if (line == null) throw new Error(`${market} needs a line`);
+    if (HCP.has(market)) {
+      let [vals, probs] = this.dist(market);
+      const sgn = sel === "B" ? -1 : 1;
+      return threshold(vals.map((v) => sgn * v + line), probs, 0);
+    }
+    const [over, push, under] = threshold(...this.dist(market), line);
+    return sel === "OVER" ? [over, push, under] : [under, push, over];
+  }
+  prob(market, sel, line = null) { const [w, , l] = this.outcome(market, sel, line); return w + l > 0 ? w / (w + l) : 0; }
+  standardLines() {
+    const w = gamesToWin(this.bestOf), out = [[ML, null], [G1_ML, null]];
+    for (let k = 1; k < w; k++) out.push([GAME_HCP, -(k + 0.5)]);
+    for (let k = 0; k < w - 1; k++) out.push([GAMES_TOTAL, w + k + 0.5]);
+    out.push([POINTS_TOTAL, this.medianLine(POINTS_TOTAL)], [G1_POINTS_TOTAL, this.medianLine(G1_POINTS_TOTAL)], [CORRECT_SCORE, null]);
+    return out;
+  }
+  fairTable() {
+    const rows = [];
+    for (const [market, line] of this.standardLines()) {
+      const sels = HCP.has(market) ? [["A", line], ["B", -line]] : groupSelections(market, this.bestOf).map((s) => [s, line]);
+      for (const [sel, sl] of sels) {
+        const [win, push, lose] = this.outcome(market, sel, sl);
+        rows.push({ market, selection: sel, line: sl, p_win: win, p_push: push, fair_price: win > 0 ? 1 + lose / win : null });
+      }
+    }
+    return rows;
+  }
+}
+
+function addInto(a, b) { for (let i = 0; i < a.length; i++) a[i] += b[i]; }
+
+const MODEL_CACHE = new Map();
+function matchModel(p, bo = 5, sigma = 0) {
+  const pr = Math.round(Math.min(Math.max(p, 1e-4), 1 - 1e-4) * 1e6) / 1e6, sr = Math.round(sigma * 1e4) / 1e4;
+  const key = `${pr}|${bo}|${sr}`;
+  let m = MODEL_CACHE.get(key);
+  if (!m) { if (MODEL_CACHE.size > 20000) MODEL_CACHE.clear(); m = new MatchModel(pr, bo, sr); MODEL_CACHE.set(key, m); }
+  return m;
+}
+function fitPointProb(targets, bo = 5, sigma = 0) {
+  if (!targets.length) return null;
+  const loss = (p) => { const m = matchModel(p, bo, sigma); let e = 0; for (const [mk, s, l, pr, w] of targets) e += w * (logit(m.prob(mk, s, l)) - logit(pr)) ** 2; return e; };
+  let best = 0, bestL = Infinity; const grid = [];
+  for (let i = 0; i <= 40; i++) grid.push(0.3 + 0.01 * i);
+  grid.forEach((p, i) => { const l = loss(p); if (l < bestL) { bestL = l; best = i; } });
+  let lo = grid[Math.max(best - 1, 0)], hi = grid[Math.min(best + 1, 40)];
+  const phi = (Math.sqrt(5) - 1) / 2;
+  for (let i = 0; i < 25; i++) { const m1 = hi - phi * (hi - lo), m2 = lo + phi * (hi - lo); if (loss(m1) < loss(m2)) hi = m2; else lo = m1; }
+  return 0.5 * (lo + hi);
+}
+
+// =================================================================== ratings
+const playerKey = (name) => String(name).split(/\s+/).filter(Boolean).join(" ").toLowerCase();
+const days = (t) => t == null ? null : t / 86400000;
+const RATING_DEFAULTS = { prior_sd: 0.12, drift_sd_per_day: 0.01, min_sd: 0.015, overdispersion: 1.3, max_step: 1.0 };
+
+class PointRating {
+  constructor(cfg = {}) { this.cfg = { ...RATING_DEFAULTS, ...cfg }; this.players = new Map(); }
+  _new(name) { return { name: String(name).trim(), mu: 0, var: this.cfg.prior_sd ** 2, matches: 0, wins: 0, pw: 0, pp: 0, last: null }; }
+  _get(name) { const k = playerKey(name); let s = this.players.get(k); if (!s) { s = this._new(name); this.players.set(k, s); } return s; }
+  _var(s, now) { let v = s.var; if (now != null && s.last != null && now > s.last) v += this.cfg.drift_sd_per_day ** 2 * (now - s.last); return Math.min(v, this.cfg.prior_sd ** 2); }
+  predict(a, b, bo = 5, when = null) {
+    const now = days(when), sa = this.players.get(playerKey(a)) || this._new(a), sb = this.players.get(playerKey(b)) || this._new(b);
+    const d = sa.mu - sb.mu, v = this._var(sa, now) + this._var(sb, now);
+    const p = sigmoid(d / Math.sqrt(1 + Math.PI * v / 8));
+    return { p_point: p, p_match: matchWinProb(p, bo), diff_mean: d, diff_sd: Math.sqrt(v), matches_a: sa.matches, matches_b: sb.matches, min_matches: Math.min(sa.matches, sb.matches) };
+  }
+  update(a, b, score, when = null) {
+    const c = this.cfg, now = days(when), sa = this._get(a), sb = this._get(b);
+    const va = this._var(sa, now), vb = this._var(sb, now), d = sa.mu - sb.mu, p = sigmoid(d);
+    let innov, obs;
+    if (score.hasPoints) {
+      const n = score.pointsA + score.pointsB, slope = p * (1 - p);
+      innov = (score.pointsA / n - p) / slope; obs = c.overdispersion * p * (1 - p) / (n * slope ** 2);
+    } else {
+      const n = score.ga + score.gb, g = gameWinProb(p), eps = 1e-4;
+      const slope = (gameWinProb(sigmoid(d + eps)) - gameWinProb(sigmoid(d - eps))) / (2 * eps);
+      innov = (score.ga / n - g) / slope; obs = c.overdispersion * g * (1 - g) / (n * slope ** 2);
+    }
+    innov = Math.max(-c.max_step, Math.min(c.max_step, innov));
+    const S = va + vb + obs, ka = va / S, kb = vb / S;
+    sa.mu += ka * innov; sb.mu -= kb * innov;
+    sa.var = Math.max(va * (1 - ka), c.min_sd ** 2); sb.var = Math.max(vb * (1 - kb), c.min_sd ** 2);
+    for (const [s, won, w, l] of [[sa, score.ga > score.gb, score.pointsA, score.pointsB], [sb, score.gb > score.ga, score.pointsB, score.pointsA]]) {
+      s.matches++; s.wins += won ? 1 : 0; s.pw += w; s.pp += w + l; if (now != null) s.last = now;
+    }
+  }
+  leaderboard(minMatches = 1) {
+    const rows = [];
+    for (const s of this.players.values()) if (s.matches >= minMatches) rows.push({
+      player: s.name, rating: s.mu, sd: Math.sqrt(s.var), matches: s.matches, wins: s.wins,
+      win_pct: s.matches ? s.wins / s.matches : null, point_pct: s.pp ? s.pw / s.pp : null, p_vs_avg: sigmoid(s.mu) });
+    return rows.sort((x, y) => y.rating - x.rating);
+  }
+}
+class EloRating {
+  constructor(k = 32) { this.k = k; this.players = new Map(); }
+  _get(n) { const k = playerKey(n); let s = this.players.get(k); if (!s) { s = { mu: 1500, matches: 0 }; this.players.set(k, s); } return s; }
+  predict(a, b, bo = 5) {
+    const sa = this.players.get(playerKey(a)) || { mu: 1500, matches: 0 }, sb = this.players.get(playerKey(b)) || { mu: 1500, matches: 0 };
+    return { p_match: 1 / (1 + 10 ** ((sb.mu - sa.mu) / 400)) };
+  }
+  update(a, b, score) {
+    const sa = this._get(a), sb = this._get(b), pm = 1 / (1 + 10 ** ((sb.mu - sa.mu) / 400)), won = score.ga > score.gb ? 1 : 0;
+    sa.mu += this.k * (sa.matches < 15 ? 2 : 1) * (won - pm); sb.mu -= this.k * (sb.matches < 15 ? 2 : 1) * (won - pm);
+    sa.matches++; sb.matches++;
+  }
+}
+
+// ====================================================================== data
+function parseCSV(text) {
+  const rows = []; let row = [], f = "", q = false, i = 0;
+  text = String(text || "").replace(/^﻿/, "");
+  while (i < text.length) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ",") { row.push(f); f = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; }
+    else f += ch;
+    i++;
+  }
+  if (f !== "" || row.length) { row.push(f); rows.push(row); }
+  const nonEmpty = rows.filter((r) => r.some((c) => c.trim() !== ""));
+  if (!nonEmpty.length) return [];
+  const head = nonEmpty[0].map((h) => h.trim().toLowerCase());
+  return nonEmpty.slice(1).map((r) => { const o = {}; head.forEach((h, j) => { o[h] = (r[j] ?? "").trim(); }); return o; });
+}
+function parseTime(text) {
+  const t = String(text || "").trim();
+  if (!t) return null;
+  let m;
+  if ((m = t.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})(?:[ T](\d{1,2}):(\d{2}))?$/))) return Date.UTC(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
+  let iso = t.replace(" ", "T");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) iso += "T00:00";
+  if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(iso)) iso += "Z";
+  const ms = Date.parse(iso);
+  if (isNaN(ms)) throw new Error(`unrecognised time "${t}"`);
+  return ms;
+}
+const matchIdOf = (r) => r.match_id || `${(r.start_time || "").slice(0, 10)}|${r.player_a}|${r.player_b}`;
+const bestOfOf = (r) => { if (!r.best_of) return 5; const b = parseInt(r.best_of, 10); gamesToWin(b); return b; };
+function loadResults(text) {
+  const out = [], errors = [];
+  parseCSV(text).forEach((r, i) => {
+    try {
+      if (!r.player_a || !r.player_b) throw new Error("player_a and player_b are required");
+      out.push({ match_id: matchIdOf(r), start_time: parseTime(r.start_time), tournament: r.tournament || "", player_a: r.player_a,
+        player_b: r.player_b, score: parseScore(r.score), best_of: bestOfOf(r) });
+    } catch (e) { errors.push(`results row ${i + 2}: ${e.message}`); }
+  });
+  out.sort((x, y) => (x.start_time == null) - (y.start_time == null) || (x.start_time || 0) - (y.start_time || 0));
+  return [out, errors];
+}
+function loadOdds(text) {
+  const out = [], errors = [];
+  parseCSV(text).forEach((r, i) => {
+    try {
+      if (!r.player_a || !r.player_b) throw new Error("player_a and player_b are required");
+      const market = normalizeMarket(r.market || ""), selection = normalizeSelection(r.selection || "", r.player_a, r.player_b);
+      let line = r.line ? parseFloat(r.line) : null;
+      if (LINE_MKTS.has(market) && (line == null || isNaN(line))) throw new Error(`${market} needs a line`);
+      if (!LINE_MKTS.has(market)) line = null;
+      const snapshot = (r.snapshot || "current").toLowerCase();
+      if (!["open", "close", "current"].includes(snapshot)) throw new Error(`snapshot must be open, close or current, got "${snapshot}"`);
+      out.push({ match_id: matchIdOf(r), start_time: parseTime(r.start_time), tournament: r.tournament || "", player_a: r.player_a,
+        player_b: r.player_b, book: r.book || "unknown", market, selection, line, price: parsePrice(r.price), snapshot, best_of: bestOfOf(r) });
+    } catch (e) { errors.push(`odds row ${i + 2}: ${e.message}`); }
+  });
+  return [out, errors];
+}
+
+// =================================================================== scanner
+const SCAN_DEFAULTS = {
+  devig_method: "power", min_edge: 0.03, max_edge: 0.30, min_books: 1,
+  sharp_books: ["pinnacle", "sbobet", "betfair", "matchbook", "demosharp"], sharp_weight: 3.0,
+  model_weight: 0.3, min_model_matches: 15, derivative_consensus_weight: 0.5, game_sigma: 0.0,
+  kelly_multiplier: 0.25, max_stake: 0.02, min_odds: 1.2, max_odds: 6.0, inconsistency_threshold: 0.04, bet_into_sharp: false,
+};
+const blend = (p1, p2, w2) => p1 == null ? p2 : (p2 == null || w2 <= 0) ? p1 : sigmoid((1 - w2) * logit(p1) + w2 * logit(p2));
+
+class ScanEvent {
+  constructor(quotes, cfg) {
+    const f = quotes[0];
+    Object.assign(this, { cfg, match_id: f.match_id, start_time: f.start_time, tournament: f.tournament, player_a: f.player_a, player_b: f.player_b, best_of: f.best_of });
+    const ka = playerKey(this.player_a), kb = playerKey(this.player_b);
+    this.prices = new Map(); // book -> Map(gk -> {sel: price})
+    for (const q of quotes) {
+      const qa = playerKey(q.player_a), qb = playerKey(q.player_b);
+      let sel = q.selection;
+      if (qa === kb && qb === ka) sel = swapSelection(q.market, sel);
+      else if (qa !== ka || qb !== kb) continue;
+      const gk = groupKey(q.market, sel, q.line);
+      if (!this.prices.has(q.book)) this.prices.set(q.book, new Map());
+      const g = this.prices.get(q.book);
+      if (!g.has(gk)) g.set(gk, {});
+      g.get(gk)[sel] = q.price;
+    }
+    this.books = [...this.prices.keys()].sort();
+    this.fair = new Map(); this.margin = new Map();
+    for (const [book, groups] of this.prices) {
+      const fb = new Map(), mb = new Map();
+      for (const [gk, sels] of groups) {
+        const [market] = parseGroupKey(gk), need = groupSelections(market, this.best_of);
+        if (need.every((s) => s in sels)) {
+          const prices = need.map((s) => sels[s]), probs = devig(prices, cfg.devig_method);
+          fb.set(gk, Object.fromEntries(need.map((s, i) => [s, probs[i]])));
+          mb.set(gk, prices.reduce((a, p) => a + 1 / p, 0) - 1);
+        }
+      }
+      this.fair.set(book, fb); this.margin.set(book, mb);
+    }
+    this.pmCache = new Map();
+    this.trust = new Map();
+    for (const [book, groups] of this.fair) {
+      const pOwn = this.ownPointProb(book), model = pOwn != null ? matchModel(pOwn, this.best_of, cfg.game_sigma) : null, tb = new Map();
+      for (const [gk, probs] of groups) {
+        const [market, gl] = parseGroupKey(gk);
+        if (market === ML) { tb.set(gk, 1); continue; }
+        if (!model) { tb.set(gk, 0.5); continue; }
+        let dev = 0;
+        for (const s in probs) dev = Math.max(dev, Math.abs(probs[s] - model.prob(market, s, selectionLine(market, s, gl))));
+        tb.set(gk, 1 / (1 + (dev / cfg.inconsistency_threshold) ** 2));
+      }
+      this.trust.set(book, tb);
+    }
+  }
+  isSharp(book) { return this.cfg.sharp_books.includes(book.toLowerCase()); }
+  sharpQuoting(gk, exclude) { let n = 0; for (const [b, g] of this.fair) if (b !== exclude && g.has(gk) && this.isSharp(b)) n++; return n; }
+  weight(b) { return this.isSharp(b) ? this.cfg.sharp_weight : 1; }
+  consensus(gk, exclude = null) {
+    const books = [...this.fair.keys()].filter((b) => b !== exclude && this.fair.get(b).has(gk));
+    if (books.length < Math.max(1, this.cfg.min_books)) return [null, books.length];
+    const [market] = parseGroupKey(gk), sels = groupSelections(market, this.best_of);
+    const w = books.map((b) => this.weight(b) * (this.trust.get(b).get(gk) ?? 1)), tw = w.reduce((a, x) => a + x, 0);
+    const raw = {}; let norm = 0;
+    for (const s of sels) { let acc = 0; books.forEach((b, i) => { acc += w[i] * logit(this.fair.get(b).get(gk)[s]); }); raw[s] = sigmoid(acc / tw); norm += raw[s]; }
+    for (const s of sels) raw[s] /= norm;
+    return [raw, books.length];
+  }
+  marketPointProb(exclude = null) {
+    const key = exclude ?? "\u0000";
+    if (this.pmCache.has(key)) return this.pmCache.get(key);
+    const sigma = this.cfg.game_sigma, bo = this.best_of;
+    const [ml] = this.consensus(`${ML}|`, exclude);
+    let p;
+    if (ml) p = pointProbFromMatchProb(ml.A, bo, sigma);
+    else {
+      const groups = new Set();
+      for (const [b, g] of this.fair) if (b !== exclude) for (const gk of g.keys()) groups.add(gk);
+      const targets = [];
+      for (const gk of groups) {
+        const [cons] = this.consensus(gk, exclude); if (!cons) continue;
+        const [market, gl] = parseGroupKey(gk);
+        for (const s in cons) targets.push([market, s, selectionLine(market, s, gl), cons[s], 1]);
+      }
+      p = targets.length ? fitPointProb(targets, bo, sigma) : null;
+    }
+    this.pmCache.set(key, p);
+    return p;
+  }
+  ownPointProb(book) { const ml = this.fair.get(book)?.get(`${ML}|`); return ml ? pointProbFromMatchProb(ml.A, this.best_of, this.cfg.game_sigma) : null; }
+}
+
+function scanEvent(quotes, cfg, ratings = null) {
+  const ev = new ScanEvent(quotes, cfg), sigma = cfg.game_sigma, bo = ev.best_of;
+  let pRating = null, ratingMp = null, ratingMatches = null;
+  if (ratings) {
+    const pr = ratings.predict(ev.player_a, ev.player_b, bo, ev.start_time);
+    ratingMatches = [pr.matches_a, pr.matches_b];
+    if (pr.min_matches >= cfg.min_model_matches) { pRating = pr.p_point; ratingMp = pr.p_match; }
+  }
+  const evals = [];
+  for (const book of ev.books) {
+    const pMkt = ev.marketPointProb(book), pFair = blend(pMkt, pRating, cfg.model_weight);
+    const model = pFair != null ? matchModel(pFair, bo, sigma) : null;
+    const pOwn = ev.ownPointProb(book), ownModel = pOwn != null ? matchModel(pOwn, bo, sigma) : null;
+    const marketMp = pMkt != null ? matchModel(pMkt, bo, sigma).pMatch : null;
+    for (const [gk, sels] of ev.prices.get(book)) {
+      const [market, gl] = parseGroupKey(gk), [cons, nCons] = ev.consensus(gk, book);
+      for (const sel in sels) {
+        const price = sels[sel], line = selectionLine(market, sel, gl), flags = [];
+        const consP = cons ? cons[sel] : null;
+        let modelP = null, pWin, pPush;
+        if (model) {
+          const [w, push, l] = model.outcome(market, sel, line);
+          modelP = w / (w + l);
+          const f = (market === ML || consP == null) ? modelP
+            : sigmoid((1 - cfg.derivative_consensus_weight) * logit(modelP) + cfg.derivative_consensus_weight * logit(consP));
+          pWin = f * (1 - push); pPush = push;
+          if (pMkt == null) flags.push("ratings_only");
+        } else if (consP != null) { pWin = consP; pPush = 0; flags.push("consensus_only"); }
+        else continue;
+        const edge = expectedValue(price, pWin, pPush), kelly = kellyFraction(price, pWin, pPush);
+        const stake = Math.min(cfg.max_stake, cfg.kelly_multiplier * kelly);
+        const bookP = ev.fair.get(book)?.get(gk)?.[sel] ?? null;
+        let ownP = null;
+        if (ownModel && market !== ML) {
+          ownP = ownModel.prob(market, sel, line);
+          if (bookP != null && Math.abs(bookP - ownP) >= cfg.inconsistency_threshold) flags.push("inconsistent_with_own_ml");
+        }
+        if (consP != null && price > 1 / consP) flags.push("beats_consensus");
+        if (nCons && nCons < 2) flags.push("thin_consensus");
+        if (ratingMp != null && marketMp != null && Math.abs(ratingMp - marketMp) > 0.15) flags.push("ratings_disagree_with_market");
+        if (edge > cfg.max_edge) flags.push("suspicious_edge");
+        let blocked = false;
+        if (ev.isSharp(book) && !ev.sharpQuoting(`${ML}|`, book)) { flags.push("sharp_book_vs_soft_consensus"); blocked = !cfg.bet_into_sharp; }
+        if (edge >= cfg.min_edge && price >= cfg.min_odds && price <= cfg.max_odds && edge <= cfg.max_edge && !blocked) flags.unshift("opportunity");
+        evals.push({
+          match_id: ev.match_id, start_time: ev.start_time, tournament: ev.tournament, player_a: ev.player_a, player_b: ev.player_b,
+          best_of: bo, book, market, selection: sel, line, price, description: describe(market, sel, line, ev.player_a, ev.player_b),
+          p_win: pWin, p_push: pPush, fair_price: fairPrice(pWin, pPush), edge, kelly, stake,
+          consensus_prob: consP, consensus_books: nCons, model_prob: modelP, rating_match_prob: ratingMp, market_match_prob: marketMp,
+          book_prob: bookP, book_margin: ev.margin.get(book)?.get(gk) ?? null, own_ml_prob: ownP, flags,
+        });
+      }
+    }
+  }
+  const arbs = [], groups = new Set();
+  for (const g of ev.prices.values()) for (const gk of g.keys()) groups.add(gk);
+  for (const gk of groups) {
+    const [market, gl] = parseGroupKey(gk), sels = groupSelections(market, bo), best = {};
+    for (const book of ev.books) { const g = ev.prices.get(book).get(gk) || {}; for (const s in g) if (!best[s] || g[s] > best[s][0]) best[s] = [g[s], book]; }
+    if (!sels.every((s) => best[s])) continue;
+    const inv = sels.reduce((a, s) => a + 1 / best[s][0], 0);
+    if (inv < 1) arbs.push({ match_id: ev.match_id, start_time: ev.start_time, player_a: ev.player_a, player_b: ev.player_b, market, line: gl,
+      legs: sels.map((s) => ({ selection: s, description: describe(market, s, selectionLine(market, s, gl), ev.player_a, ev.player_b),
+        book: best[s][1], price: best[s][0], stake_share: (1 / best[s][0]) / inv })), margin: 1 / inv - 1 });
+  }
+  const pAll = blend(ev.marketPointProb(null), pRating, cfg.model_weight);
+  let fair = [];
+  if (pAll != null) fair = matchModel(pAll, bo, sigma).fairTable().map((r) => ({ ...r, description: describe(r.market, r.selection, r.line, ev.player_a, ev.player_b) }));
+  const summary = { match_id: ev.match_id, start_time: ev.start_time, tournament: ev.tournament, player_a: ev.player_a, player_b: ev.player_b,
+    best_of: bo, books: ev.books, p_point: pAll, p_point_market: ev.marketPointProb(null), p_point_rating: pRating,
+    p_match: pAll != null ? matchModel(pAll, bo, sigma).pMatch : null, rating_matches: ratingMatches, fair };
+  return [evals, arbs, summary];
+}
+
+function scan(quotes, cfg, ratings = null, snapshot = "current") {
+  const by = new Map();
+  for (const q of quotes) if (snapshot == null || q.snapshot === snapshot) { if (!by.has(q.match_id)) by.set(q.match_id, []); by.get(q.match_id).push(q); }
+  const evaluations = [], arbitrages = [], events = [];
+  for (const qs of by.values()) { const [e, a, s] = scanEvent(qs, cfg, ratings); evaluations.push(...e); arbitrages.push(...a); events.push(s); }
+  events.sort((x, y) => (x.start_time || 0) - (y.start_time || 0) || (x.match_id < y.match_id ? -1 : 1));
+  arbitrages.sort((x, y) => y.margin - x.margin);
+  const opportunities = evaluations.filter((e) => e.flags[0] === "opportunity").sort((x, y) => y.edge - x.edge);
+  return { evaluations, arbitrages, events, opportunities };
+}
+
+// ================================================================== backtest
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+async function calibrateSigma(results, ratingCfg = {}, { grid = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4], minMatches = 15, onProgress } = {}) {
+  const ratings = new PointRating(ratingCfg), S = grid.length, O = GH_X.length;
+  const ll = new Float64Array(S); let nm = 0, ng = 0;
+  const gameLike = (pp, loser) => { const q = 1 - pp; return loser <= 9 ? COMB[loser] * pp ** 11 * q ** loser : C2010 * pp ** 12 * q ** 10 * (2 * pp * q) ** (loser - 10); };
+  for (let idx = 0; idx < results.length; idx++) {
+    const r = results[idx], pr = ratings.predict(r.player_a, r.player_b, r.best_of, r.start_time);
+    if (r.score.hasPoints && pr.min_matches >= minMatches) {
+      nm++; ng += r.score.games.length;
+      for (let si = 0; si < S; si++) {
+        let like = 0;
+        for (let o = 0; o < O; o++) {
+          const d = pr.diff_mean + pr.diff_sd * Math.SQRT2 * GH_X[o];
+          let ml = 1;
+          for (const [a, b] of r.score.games) {
+            const loser = Math.min(Math.min(a, b), 35); let gl = 0;
+            if (grid[si] === 0) { const pp = sigmoid(d); gl = gameLike(a > b ? pp : 1 - pp, loser); }
+            else for (let i = 0; i < O; i++) { const pp = sigmoid(d + Math.SQRT2 * grid[si] * GH_X[i]); gl += GH_W[i] * gameLike(a > b ? pp : 1 - pp, loser); }
+            ml *= gl;
+          }
+          like += GH_W[o] * ml;
+        }
+        ll[si] += Math.log(Math.max(like, 1e-300));
+      }
+    }
+    ratings.update(r.player_a, r.player_b, r.score, r.start_time);
+    if (idx % 300 === 299) { onProgress?.(idx / results.length); await tick(); }
+  }
+  if (!nm) return { sigma: 0, matches: 0, games: 0, grid: [] };
+  let best = 0; for (let i = 1; i < S; i++) if (ll[i] > ll[best]) best = i;
+  return { sigma: grid[best], matches: nm, games: ng, grid: grid.map((s, i) => ({ sigma: s, log_lik: ll[i] })) };
+}
+
+async function runBacktest(results, quotes, cfg, ratingCfg = {}, { betSnapshot = "open", closeSnapshot = "close", bankroll = 100, onProgress } = {}) {
+  const ratings = new PointRating(ratingCfg), elo = new EloRating(), odds = new Map();
+  for (const q of quotes) { if (!odds.has(q.match_id)) odds.set(q.match_id, {}); const o = odds.get(q.match_id); (o[q.snapshot] = o[q.snapshot] || []).push(q); }
+  const pick = (s, ...order) => { for (const k of order) if (s[k]?.length) return s[k]; return []; };
+  const preds = [], calib = [], bets = []; let withOdds = 0;
+  for (let idx = 0; idx < results.length; idx++) {
+    const r = results[idx], snaps = odds.get(r.match_id) || {};
+    const pred = ratings.predict(r.player_a, r.player_b, r.best_of, r.start_time), ep = elo.predict(r.player_a, r.player_b);
+    const aWon = r.score.ga > r.score.gb ? 1 : 0;
+    const closeQ = pick(snaps, closeSnapshot, "current"), closeEv = closeQ.length ? new ScanEvent(closeQ, cfg) : null;
+    if (closeEv) {
+      withOdds++;
+      const [ml] = closeEv.consensus(`${ML}|`), flipped = playerKey(closeEv.player_a) !== playerKey(r.player_a);
+      if (ml) {
+        const mClose = flipped ? ml.B : ml.A, mult = [];
+        for (const g of closeEv.prices.values()) { const s = g.get(`${ML}|`); if (s?.A && s?.B) { const pa = devig([s.A, s.B], "multiplicative")[0]; mult.push(flipped ? 1 - pa : pa); } }
+        const mp = mult.length ? mult.reduce((a, b) => a + b, 0) / mult.length : mClose;
+        calib.push([mClose, mp, aWon], [1 - mClose, 1 - mp, 1 - aWon]);
+        if (pred.min_matches >= cfg.min_model_matches) {
+          const pm = matchModel(pred.p_point, r.best_of, cfg.game_sigma).pMatch;
+          preds.push([pm, ep.p_match, mClose, sigmoid((1 - cfg.model_weight) * logit(mClose) + cfg.model_weight * logit(pm)), aWon]);
+        }
+      }
+    }
+    const betQ = pick(snaps, betSnapshot, closeSnapshot, "current");
+    if (betQ.length) {
+      const [evals] = scanEvent(betQ, cfg, ratings), best = new Map();
+      for (const e of evals) if (e.flags[0] === "opportunity") { const k = groupKey(e.market, e.selection, e.line) + e.selection; if (!best.has(k) || e.edge > best.get(k).edge) best.set(k, e); }
+      for (const e of best.values()) {
+        const score = playerKey(e.player_a) !== playerKey(r.player_a) ? r.score.swapped() : r.score;
+        const res = settle(e.market, e.selection, e.line, score);
+        if (res == null) continue;
+        const stake = e.stake * bankroll; if (stake <= 0) continue;
+        const profit = res === "win" ? stake * (e.price - 1) : res === "push" ? 0 : -stake;
+        bets.push({ match_id: e.match_id, start_time: e.start_time, book: e.book, market: e.market, description: e.description, price: e.price,
+          edge: e.edge, stake, result: res, profit, clv: closeEv && closeQ !== betQ ? clvOf(closeEv, cfg, e) : null });
+      }
+    }
+    ratings.update(r.player_a, r.player_b, r.score, r.start_time); elo.update(r.player_a, r.player_b, r.score);
+    if (idx % 100 === 99) { onProgress?.(idx / results.length); await tick(); }
+  }
+  return { matches: results.length, matches_with_odds: withOdds, prediction: predMetrics(preds), calibration: calibTable(calib), betting: betMetrics(bets), bankroll };
+}
+function clvOf(closeEv, cfg, e) {
+  const flipped = playerKey(closeEv.player_a) !== playerKey(e.player_a), sel = flipped ? swapSelection(e.market, e.selection) : e.selection;
+  const gk = groupKey(e.market, sel, e.line), [cons] = closeEv.consensus(gk), pp = closeEv.marketPointProb(null);
+  let pWin, pPush = 0;
+  if (cons) { pWin = cons[sel]; if (pp != null && e.line != null) { pPush = matchModel(pp, closeEv.best_of, cfg.game_sigma).outcome(e.market, sel, e.line)[1]; pWin *= 1 - pPush; } }
+  else { if (pp == null) return null; [pWin, pPush] = matchModel(pp, closeEv.best_of, cfg.game_sigma).outcome(e.market, sel, e.line); }
+  return pWin * (e.price - 1) - (1 - pWin - pPush);
+}
+const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+function predMetrics(preds) {
+  if (!preds.length) return { n: 0 };
+  const out = { n: preds.length };
+  ["ratings", "elo", "market", "blend"].forEach((name, i) => {
+    const ll = mean(preds.map((r) => { const p = Math.min(Math.max(r[i], 1e-6), 1 - 1e-6); return -(r[4] * Math.log(p) + (1 - r[4]) * Math.log(1 - p)); }));
+    out[name] = { log_loss: ll, brier: mean(preds.map((r) => (r[i] - r[4]) ** 2)), accuracy: mean(preds.map((r) => ((r[i] > 0.5) === (r[4] === 1)) ? 1 : 0)) };
+  });
+  return out;
+}
+function calibTable(rows) {
+  const out = [];
+  for (let b = 0; b < 10; b++) {
+    const lo = b / 10, hi = (b + 1) / 10, sel = rows.filter((r) => r[1] >= lo && (b === 9 ? r[1] <= hi : r[1] < hi));
+    if (!sel.length) continue;
+    const actual = mean(sel.map((r) => r[2]));
+    out.push({ bucket: `${b * 10}%-${(b + 1) * 10}%`, n: sel.length, implied_multiplicative: mean(sel.map((r) => r[1])),
+      implied_devigged: mean(sel.map((r) => r[0])), actual, se: Math.sqrt(Math.max(actual * (1 - actual), 1e-9) / sel.length) });
+  }
+  return out;
+}
+function betMetrics(bets) {
+  if (!bets.length) return { n: 0 };
+  const staked = bets.reduce((a, b) => a + b.stake, 0), profit = bets.reduce((a, b) => a + b.profit, 0);
+  const ret = bets.map((b) => b.profit / b.stake), m = mean(ret);
+  const se = bets.length > 1 ? Math.sqrt(ret.reduce((a, x) => a + (x - m) ** 2, 0) / (bets.length - 1) / bets.length) : NaN;
+  let cum = 0, peak = 0, dd = 0; const curve = [], step = Math.max(1, Math.floor(bets.length / 300));
+  bets.forEach((b, i) => { cum += b.profit; peak = Math.max(peak, cum); dd = Math.max(dd, peak - cum); if (i % step === 0 || i === bets.length - 1) curve.push({ i, t: b.start_time, profit: cum }); });
+  const clvs = bets.map((b) => b.clv).filter((c) => c != null);
+  const group = (key) => { const t = {}; for (const b of bets) { const g = t[b[key]] = t[b[key]] || { n: 0, staked: 0, profit: 0, clv: [] }; g.n++; g.staked += b.stake; g.profit += b.profit; if (b.clv != null) g.clv.push(b.clv); }
+    for (const k in t) { const g = t[k]; g.roi = g.staked ? g.profit / g.staked : null; g.avg_clv = g.clv.length ? mean(g.clv) : null; delete g.clv; } return t; };
+  return { n: bets.length, staked, profit, roi: profit / staked, roi_se: se, hit_rate: mean(bets.map((b) => b.result === "win" ? 1 : 0)),
+    avg_price: mean(bets.map((b) => b.price)), avg_edge: mean(bets.map((b) => b.edge)), avg_clv: clvs.length ? mean(clvs) : null,
+    pct_positive_clv: clvs.length ? mean(clvs.map((c) => c > 0 ? 1 : 0)) : null, max_drawdown: dd, curve, by_market: group("market"), by_book: group("book") };
+}
+
+// ================================================================= synthetic
+function rng(seed) {
+  let s = seed >>> 0;
+  const u = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  let spare = null;
+  const normal = (mu = 0, sd = 1) => { if (spare != null) { const v = spare; spare = null; return mu + sd * v; }
+    let a, b, r2; do { a = 2 * u() - 1; b = 2 * u() - 1; r2 = a * a + b * b; } while (r2 >= 1 || r2 === 0);
+    const f = Math.sqrt(-2 * Math.log(r2) / r2); spare = b * f; return mu + sd * a * f; };
+  const sample = (n, k) => { const idx = [...Array(n).keys()]; for (let i = 0; i < k; i++) { const j = i + Math.floor(u() * (n - i)); [idx[i], idx[j]] = [idx[j], idx[i]]; } return idx.slice(0, k); };
+  return { u, normal, sample };
+}
+const TRUE_SIGMA = 0.10;
+const DEMO_BOOKS = [
+  { name: "DemoSharp", open: 0.010, close: 0.005, margin: 0.035, style: "model", markets: [ML, GAME_HCP, GAMES_TOTAL, POINTS_TOTAL] },
+  { name: "DemoSoftA", open: 0.015, close: 0.012, margin: 0.065, style: "model_naive", markets: [ML, GAME_HCP, GAMES_TOTAL, CORRECT_SCORE] },
+  { name: "DemoSoftB", open: 0.012, close: 0.010, margin: 0.07, style: "lazy", markets: [ML, GAME_HCP, GAMES_TOTAL, G1_ML] },
+];
+function simulateMatch(R, d, bo) {
+  const w = gamesToWin(bo); let ga = 0, gb = 0; const games = [];
+  while (ga < w && gb < w) {
+    const [wa, wb] = gameOutcomes(sigmoid(d + R.normal(0, TRUE_SIGMA)));
+    let u = R.u(), k = 0, aWins = true, acc = 0;
+    for (k = 0; k < N_LOSER; k++) { acc += wa[k]; if (u < acc) break; }
+    if (k === N_LOSER) { aWins = false; for (k = 0; k < N_LOSER - 1; k++) { acc += wb[k]; if (u < acc) break; } }
+    const wp = WINNER_PTS[k];
+    games.push(aWins ? [wp, k] : [k, wp]); if (aWins) ga++; else gb++;
+  }
+  return new MatchScore(ga, gb, games);
+}
+function bookGroups(book, dEst, bo) {
+  // books quote to 2 decimals, so rounding their belief to 1e-4 changes nothing visible and lets models be shared
+  const model = matchModel(Math.round(sigmoid(dEst) * 1e4) / 1e4, bo, book.style === "model" ? TRUE_SIGMA : 0), m = model.pMatch;
+  const fav = m >= 0.5 ? "A" : "B", favM = Math.max(m, 1 - m), out = [];
+  for (const market of book.markets) {
+    if (market === ML) out.push([market, null, ["A", "B"], [m, 1 - m]]);
+    else if (market === G1_ML) { const g = book.style === "lazy" ? 0.5 + (m - 0.5) * 0.6 : model.pGame; out.push([market, null, ["A", "B"], [g, 1 - g]]); }
+    else if (market === GAME_HCP) {
+      const al = fav === "A" ? -1.5 : 1.5;
+      const pa = book.style === "lazy" ? (fav === "A" ? Math.max(0.05, favM - 0.2) : 1 - Math.max(0.05, favM - 0.2)) : model.prob(market, "A", al);
+      out.push([market, al, ["A", "B"], [pa, 1 - pa]]);
+    } else if (market === GAMES_TOTAL) { const po = book.style === "lazy" ? 0.74 - 0.4 * Math.abs(m - 0.5) : model.prob(market, "OVER", 3.5); out.push([market, 3.5, ["OVER", "UNDER"], [po, 1 - po]]); }
+    else if (market === POINTS_TOTAL) { const line = model.medianLine(market), po = model.prob(market, "OVER", line); out.push([market, line, ["OVER", "UNDER"], [po, 1 - po]]); }
+    else if (market === CORRECT_SCORE) { const sels = correctScoreSelections(bo); out.push([market, null, sels, sels.map((s) => Math.max(model.prob(market, s), 1e-3))]); }
+  }
+  return out;
+}
+function generateDemo({ seed = 7, nPlayers = 40, days: nDays = 24, groupsPerDay = 6, groupSize = 5, upcomingGroups = 6 } = {}) {
+  const R = rng(seed), now = new Date(), start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 8) - nDays * 86400000;
+  const names = Array.from({ length: nPlayers }, (_, i) => `Demo Player ${String(i + 1).padStart(2, "0")}`);
+  let theta = names.map(() => R.normal(0, 0.10));
+  const results = [], quotes = []; let no = 0;
+  for (let day = 0; day <= nDays; day++) {
+    const upcoming = day === nDays;
+    theta = theta.map((t) => t + R.normal(0, 0.006));
+    for (let grp = 0; grp < (upcoming ? upcomingGroups : groupsPerDay); grp++) {
+      const players = R.sample(nPlayers, groupSize), league = grp % 2 === 0 ? "Demo League A" : "Demo League B";
+      const t0 = start + day * 86400000 + grp * 3600000; let k = 0;
+      for (let x = 0; x < players.length; x++) for (let y = x + 1; y < players.length; y++) {
+        const i = players[x], j = players[y], when = t0 + 20 * 60000 * k++;
+        const base = { match_id: `demo-${String(++no).padStart(5, "0")}`, start_time: when, tournament: league, player_a: names[i], player_b: names[j], best_of: 5 };
+        const dTrue = theta[i] - theta[j], form = R.normal(0, 0.02);
+        for (const book of DEMO_BOOKS) {
+          const emit = (dEst, snapshot) => {
+            for (const [market, al, sels, probs] of bookGroups(book, dEst, 5)) {
+              const tot = probs.reduce((a, b) => a + b, 0), prices = applyMargin(probs.map((p) => p / tot), book.margin * (market === CORRECT_SCORE ? 1.6 : 1));
+              sels.forEach((s, n) => quotes.push({ ...base, book: book.name, market, selection: s, line: selectionLine(market, s, al), price: Math.max(1.01, Math.floor(prices[n] * 100) / 100), snapshot }));
+            }
+          };
+          const noiseOpen = R.normal(0, book.open);
+          if (upcoming) emit(dTrue + noiseOpen, "current");
+          else { emit(dTrue + noiseOpen, "open"); emit(dTrue + 0.7 * form + R.normal(0, book.close), "close"); }
+        }
+        if (!upcoming) results.push({ ...base, score: simulateMatch(R, dTrue + form, 5) });
+      }
+    }
+  }
+  return [results, quotes];
+}
+
+const TT = {
+  logit, sigmoid, parsePrice, devig, applyMargin, expectedValue, fairPrice, kellyFraction, DEVIG_METHODS,
+  ML, GAME_HCP, GAMES_TOTAL, CORRECT_SCORE, POINTS_TOTAL, POINTS_HCP, G1_ML, G1_POINTS_TOTAL, MARKETS, MARKET_LABELS,
+  normalizeMarket, normalizeSelection, swapSelection, groupKey, describe, parseScore, settle, MatchScore,
+  gameWinProb, matchWinProb, pointProbFromMatchProb, MatchModel, matchModel, fitPointProb,
+  PointRating, EloRating, playerKey, parseCSV, parseTime, loadResults, loadOdds,
+  SCAN_DEFAULTS, ScanEvent, scanEvent, scan, calibrateSigma, runBacktest, generateDemo,
+};
+if (typeof module !== "undefined" && module.exports) module.exports = TT; else root.TT = TT;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pct = (x, d = 1) => x == null || !isFinite(x) ? "–" : (x * 100).toFixed(d) + "%";
+const odds = (x) => x == null || !isFinite(x) ? "–" : Number(x).toFixed(2);
+const units = (x) => x == null ? "–" : (Math.round(x * 100) / 100).toLocaleString() + "u";
+const DTF = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const when = (t) => t == null ? "" : DTF.format(new Date(t));
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem("ttedge:" + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem("ttedge:" + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } },
+};
+const MARKETS = TT.MARKET_LABELS;
+const FLAGS = {
+  beats_consensus: ["good", "consensus", "Beats the other books' margin-free consensus on its own"],
+  inconsistent_with_own_ml: ["good", "inconsistent", "This derivative disagrees with the same book's own match-winner price"],
+  thin_consensus: ["warn", "thin", "Only one other book quotes this market"],
+  ratings_disagree_with_market: ["warn", "ratings differ", "Ratings and market disagree by over 15 points on the match"],
+  suspicious_edge: ["bad", "too good", "Edge above the sanity cap: likely a stale line or a data error"],
+  sharp_book_vs_soft_consensus: ["warn", "sharp book", "A sharp book judged only by softer books; not listed as a bet by default"],
+  ratings_only: ["warn", "ratings only", "No market reference; fair value comes from ratings alone"],
+  consensus_only: ["", "consensus only", "No point model available; fair value is the consensus alone"],
+};
+const chips = (flags) => flags.filter((f) => f !== "opportunity").map((f) => {
+  const [cls, label, tip] = FLAGS[f] || ["", f, f];
+  return `<span class="chip ${cls}" title="${esc(tip)}">${esc(label)}</span>`;
+}).join("");
+
+// ------------------------------------------------------------------ state
+const S = {
+  source: "", synthetic: false, results: [], quotes: [], errors: [], busy: "",
+  config: { ...TT.SCAN_DEFAULTS, ...(store.get("config") || {}) }, autoSigma: store.get("autoSigma") ?? true,
+  sigmaFit: null, ratings: null, scan: null, backtest: null,
+};
+const sleep = () => new Promise((r) => setTimeout(r, 0));
+
+async function refresh(refitSigma = false) {
+  S.busy = refitSigma && S.autoSigma ? "Fitting model…" : "Scanning…"; renderStatus(); await sleep();
+  if (S.autoSigma) {
+    if (refitSigma || !S.sigmaFit) {
+      S.sigmaFit = S.results.some((r) => r.score.hasPoints) ? await TT.calibrateSigma(S.results) : null;
+    }
+    S.config.game_sigma = S.sigmaFit && S.sigmaFit.matches >= 200 ? S.sigmaFit.sigma : 0;
+  }
+  S.ratings = new TT.PointRating();
+  for (const r of S.results) S.ratings.update(r.player_a, r.player_b, r.score, r.start_time);
+  const snaps = new Set(S.quotes.map((q) => q.snapshot));
+  S.scan = TT.scan(S.quotes, S.config, S.ratings, snaps.has("current") ? "current" : snaps.has("close") ? "close" : null);
+  S.backtest = null; S.busy = "";
+  renderAll();
+}
+
+async function loadDemo() {
+  S.busy = "Building demo board…"; renderStatus(); await sleep();
+  [S.results, S.quotes] = TT.generateDemo();
+  S.errors = []; S.source = "Demo board"; S.synthetic = true;
+  await refresh(true);
+}
+
+// ------------------------------------------------------------------ theme + tabs
+(function initTheme() {
+  const saved = store.get("theme");
+  if (saved) document.documentElement.dataset.theme = saved;
+  $("#themeBtn").onclick = () => {
+    const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next; store.set("theme", next);
+  };
+})();
+function showTab(name) {
+  document.querySelectorAll("#tabs button").forEach((x) => x.setAttribute("aria-selected", String(x.dataset.tab === name)));
+  document.querySelectorAll(".panel").forEach((p) => { p.hidden = p.id !== "panel-" + name; });
+  store.set("tab", name);
+  if (name === "ratings") renderRatings();
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
+document.querySelectorAll("[data-goto]").forEach((a) => a.onclick = (e) => { e.preventDefault(); showTab(a.dataset.goto); });
+
+// ------------------------------------------------------------------ table helper
+function renderTable(el, cols, rows, opts = {}) {
+  const st = el._sort || (el._sort = { key: opts.sortKey, dir: opts.sortDir || -1 });
+  if (st.key) {
+    const col = cols.find((c) => c.key === st.key), val = col && col.sortVal ? col.sortVal : (r) => r[st.key];
+    rows = rows.slice().sort((a, b) => { const x = val(a), y = val(b); if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * st.dir; });
+  }
+  const limit = opts.limit || 300;
+  const head = "<thead><tr>" + cols.map((c) => `<th class="${c.num ? "num" : ""}" ${c.nosort ? "" : `data-sort="${c.key}"`} scope="col">${esc(c.label)}${st.key === c.key ? (st.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("") + "</tr></thead>";
+  const body = rows.length ? rows.slice(0, limit).map((r, i) => `<tr class="${opts.onRow ? "click" : ""}" data-i="${i}" ${opts.onRow ? 'tabindex="0"' : ""}>` +
+      cols.map((c) => `<td class="${c.num ? "num" : ""} ${c.cls ? c.cls(r) : ""}">${c.html ? c.html(r) : esc(r[c.key])}</td>`).join("") + "</tr>").join("")
+    : `<tr><td colspan="${cols.length}" class="empty">${esc(opts.empty || "Nothing to show")}</td></tr>`;
+  const more = rows.length > limit ? `<tr><td colspan="${cols.length}" class="muted">${rows.length - limit} more rows. Narrow the filters to see them.</td></tr>` : "";
+  el.innerHTML = head + "<tbody>" + body + more + "</tbody>";
+  el.querySelectorAll("th[data-sort]").forEach((th) => th.onclick = () => { st.dir = st.key === th.dataset.sort ? -st.dir : -1; st.key = th.dataset.sort; renderTable(el, cols, rows, opts); });
+  if (opts.onRow) el.querySelectorAll("tbody tr.click").forEach((tr) => {
+    const go = () => opts.onRow(rows.slice(0, limit)[+tr.dataset.i]);
+    tr.onclick = go; tr.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+  });
+}
+
+// ------------------------------------------------------------------ rendering
+function renderStatus() {
+  const sc = S.scan;
+  $("#status").innerHTML = [
+    S.busy ? `<span class="badge busy">${esc(S.busy)}</span>` : "",
+    S.synthetic ? `<span class="badge warn">Demo data, not real prices</span>` : S.source ? `<span class="badge">${esc(S.source)}</span>` : "",
+    sc ? `<span class="badge">${sc.events.length} matches · ${S.quotes.length.toLocaleString()} prices</span>` : "",
+    `<span class="badge">${S.results.length.toLocaleString()} results</span>`,
+    sc ? `<span class="badge">${sc.opportunities.length} value bets · ${sc.arbitrages.length} arbs</span>` : "",
+    S.errors.length ? `<span class="badge warn">${S.errors.length} rows skipped</span>` : "",
+  ].join("");
+  $("#demoNotice").hidden = !S.synthetic;
+}
+function renderAll() {
+  renderStatus(); fillFilters(); renderBets(); renderArbs(); renderMatches(); renderSettings(); renderErrors();
+  if (!$("#panel-ratings").hidden) renderRatings();
+  if (!$("#panel-backtest").hidden || S.backtest == null) $("#btOut").innerHTML = '<div class="empty">Run the backtest to replay the history (about ten seconds for the demo).</div>';
+}
+function fillFilters() {
+  const m = $("#fMarket"), b = $("#fBook"), mv = m.value, bv = b.value, books = [...new Set(S.quotes.map((q) => q.book))].sort();
+  m.innerHTML = '<option value="">All markets</option>' + Object.entries(MARKETS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+  b.innerHTML = '<option value="">All books</option>' + books.map((x) => `<option>${esc(x)}</option>`).join("");
+  m.value = mv; b.value = books.includes(bv) ? bv : "";
+  if (!$("#fEdge").dataset.touched) $("#fEdge").value = +(S.config.min_edge * 100).toFixed(2);
+}
+function filteredBets() {
+  const minEdge = parseFloat($("#fEdge").value || "0") / 100, mkt = $("#fMarket").value, book = $("#fBook").value;
+  const text = $("#fText").value.trim().toLowerCase(), onlyInc = $("#fConsistent").checked;
+  return (S.scan?.opportunities || []).filter((o) => o.edge >= minEdge && (!mkt || o.market === mkt) && (!book || o.book === book)
+    && (!onlyInc || o.flags.includes("inconsistent_with_own_ml")) && (!text || `${o.player_a} ${o.player_b} ${o.tournament}`.toLowerCase().includes(text)));
+}
+function renderBets() {
+  renderTable($("#betsTable"), [
+    { key: "start_time", label: "Start", html: (r) => esc(when(r.start_time)) },
+    { key: "player_a", label: "Match", html: (r) => `${esc(r.player_a)} <span class="muted">v</span> ${esc(r.player_b)}<div class="sub">${esc(r.tournament)}</div>` },
+    { key: "description", label: "Bet", html: (r) => `${esc(r.description)}<div class="sub">${esc(MARKETS[r.market])}</div>` },
+    { key: "book", label: "Book" },
+    { key: "price", label: "Price", num: true, html: (r) => `<b>${odds(r.price)}</b>` },
+    { key: "fair_price", label: "Fair", num: true, html: (r) => odds(r.fair_price) },
+    { key: "edge", label: "Edge", num: true, cls: () => "pos", html: (r) => pct(r.edge) },
+    { key: "stake", label: "Stake", num: true, html: (r) => pct(r.stake, 2) },
+    { key: "consensus_books", label: "Other books", num: true },
+    { key: "flags", label: "Why", nosort: true, cls: () => "wrap", html: (r) => chips(r.flags) },
+  ], filteredBets(), { sortKey: "edge", onRow: (r) => openEvent(r.match_id),
+    empty: S.quotes.length ? "No prices beat fair value at this edge. Lower the minimum edge or load more books." : "No odds loaded. Add an odds file on the Data & settings tab." });
+}
+function renderArbs() {
+  renderTable($("#arbsTable"), [
+    { key: "player_a", label: "Match", html: (r) => `${esc(r.player_a)} <span class="muted">v</span> ${esc(r.player_b)}<div class="sub">${esc(when(r.start_time))}</div>` },
+    { key: "market", label: "Market", html: (r) => esc(MARKETS[r.market]) },
+    { key: "legs", label: "Legs (stake share)", nosort: true, html: (r) => r.legs.map((l) =>
+      `<div>${esc(l.description)} @ <b>${odds(l.price)}</b> ${esc(l.book)} <span class="muted">(${pct(l.stake_share)})</span></div>`).join("") },
+    { key: "margin", label: "Locked return", num: true, cls: () => "pos", html: (r) => pct(r.margin, 2) },
+  ], S.scan?.arbitrages || [], { sortKey: "margin", onRow: (r) => openEvent(r.match_id), empty: "No arbitrage on the current board." });
+}
+function renderMatches() {
+  const text = $("#mText").value.trim().toLowerCase(), nOpp = {};
+  (S.scan?.opportunities || []).forEach((o) => nOpp[o.match_id] = (nOpp[o.match_id] || 0) + 1);
+  const rows = (S.scan?.events || []).filter((e) => !text || `${e.player_a} ${e.player_b} ${e.tournament}`.toLowerCase().includes(text)).map((e) => ({ ...e, n_opp: nOpp[e.match_id] || 0 }));
+  const f4 = (x) => x == null ? '<span class="muted">–</span>' : x.toFixed(4);
+  renderTable($("#matchesTable"), [
+    { key: "start_time", label: "Start", html: (r) => esc(when(r.start_time)) },
+    { key: "tournament", label: "Tournament" },
+    { key: "player_a", label: "Player A" },
+    { key: "player_b", label: "Player B" },
+    { key: "p_match", label: "Fair P(A)", num: true, html: (r) => pct(r.p_match) },
+    { key: "fair_ab", label: "Fair A / B", num: true, nosort: true, html: (r) => r.p_match ? `${odds(1 / r.p_match)} / ${odds(1 / (1 - r.p_match))}` : "–" },
+    { key: "p_point", label: "P(point)", num: true, html: (r) => f4(r.p_point) },
+    { key: "p_point_rating", label: "Ratings P(point)", num: true, html: (r) => f4(r.p_point_rating) },
+    { key: "books", label: "Books", num: true, sortVal: (r) => r.books.length, html: (r) => r.books.length },
+    { key: "n_opp", label: "Value bets", num: true, html: (r) => r.n_opp ? `<b>${r.n_opp}</b>` : '<span class="muted">0</span>' },
+  ], rows, { sortKey: "start_time", sortDir: 1, onRow: (r) => openEvent(r.match_id), empty: "No matches loaded." });
+}
+
+function openEvent(id) {
+  const e = S.scan.events.find((x) => x.match_id === id); if (!e) return;
+  const evals = S.scan.evaluations.filter((x) => x.match_id === id);
+  const f4 = (x) => x == null ? "–" : x.toFixed(4);
+  $("#dlgTitle").innerHTML = `<h2>${esc(e.player_a)} <span class="muted">v</span> ${esc(e.player_b)}</h2>
+    <div class="sub">${esc(e.tournament)} · ${esc(when(e.start_time))} · best of ${e.best_of} · P(point) ${f4(e.p_point)}
+    (market ${f4(e.p_point_market)}, ratings ${f4(e.p_point_rating)})</div>`;
+  const key = (r) => `${r.market}|${r.selection}|${r.line}`, rows = e.fair.map((f) => ({ ...f, key: key(f) })), byKey = {};
+  evals.forEach((v) => { (byKey[key(v)] = byKey[key(v)] || {})[v.book] = v; });
+  for (const k in byKey) if (!rows.find((f) => f.key === k)) { const v = Object.values(byKey[k])[0]; rows.push({ key: k, market: v.market, selection: v.selection, line: v.line, description: v.description, p_win: v.p_win, fair_price: v.fair_price }); }
+  rows.sort((a, b) => TT.MARKETS.indexOf(a.market) - TT.MARKETS.indexOf(b.market) || (a.line ?? 0) - (b.line ?? 0));
+  const head = `<tr><th scope="col">Market</th><th scope="col">Selection</th><th class="num" scope="col">Fair</th><th class="num" scope="col">Fair odds</th>${e.books.map((b) => `<th class="num" scope="col">${esc(b)}</th>`).join("")}</tr>`;
+  const body = rows.map((f) => `<tr><td>${esc(MARKETS[f.market])}</td><td>${esc(f.description)}</td><td class="num">${pct(f.p_win)}</td><td class="num">${odds(f.fair_price)}</td>` +
+    e.books.map((b) => { const q = (byKey[f.key] || {})[b]; if (!q) return '<td class="num muted">·</td>';
+      const cls = q.flags[0] === "opportunity" ? "pos" : q.edge < -0.08 ? "muted" : "";
+      return `<td class="num ${cls}" title="edge ${pct(q.edge)} against fair ${odds(q.fair_price)}${q.book_margin != null ? " · book margin " + pct(q.book_margin) : ""}">${odds(q.price)}<div class="sub ${q.edge > 0 ? "pos" : ""}">${q.edge > 0 ? "+" : ""}${pct(q.edge)}</div></td>`; }).join("") + "</tr>").join("");
+  $("#dlgBody").innerHTML = `<p class="hint">Each book's price and its edge (green = listed as a value bet). A book is always judged against fair value built from
+    the <i>other</i> books, so its edge can differ a little from the overall fair column.</p><div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  if (!$("#dlg").open) $("#dlg").showModal();
+}
+$("#dlgClose").onclick = () => $("#dlg").close();
+["#fEdge", "#fMarket", "#fBook", "#fText", "#fConsistent"].forEach((s) => $(s).addEventListener("input", () => { if (s === "#fEdge") $("#fEdge").dataset.touched = "1"; renderBets(); }));
+$("#mText").addEventListener("input", renderMatches);
+
+// ------------------------------------------------------------------ pricer
+function runPricer(e) {
+  e?.preventDefault();
+  const bo = +$("#pBo").value, sigma = Math.max(0, +$("#pSig").value || 0);
+  try {
+    let p, head;
+    if ($("#pP").value.trim()) {
+      p = parseFloat($("#pP").value);
+      if (!(p > 0 && p < 1)) throw new Error("Point probability must be between 0 and 1, for example 0.53.");
+    } else {
+      const a = TT.parsePrice($("#pA").value), b = TT.parsePrice($("#pB").value), [pa] = TT.devig([a, b], $("#pDevig").value);
+      p = TT.pointProbFromMatchProb(pa, bo, sigma);
+      head = `<div class="tile"><div class="k">Book margin</div><div class="v">${pct(1 / a + 1 / b - 1, 2)}</div><div class="s">${odds(a)} / ${odds(b)}</div></div>
+        <div class="tile"><div class="k">Fair P(A wins match)</div><div class="v">${pct(pa)}</div><div class="s">fair odds ${odds(1 / pa)} / ${odds(1 / (1 - pa))}</div></div>`;
+    }
+    const m = TT.matchModel(p, bo, sigma);
+    $("#pOut").innerHTML = `<div class="tiles">${head || `<div class="tile"><div class="k">P(A wins match)</div><div class="v">${pct(m.pMatch)}</div></div>`}
+      <div class="tile"><div class="k">P(A wins a point)</div><div class="v">${p.toFixed(4)}</div><div class="s">game ${pct(m.pGame)}</div></div>
+      <div class="tile"><div class="k">Expected total points</div><div class="v">${m.expectedPoints().toFixed(1)}</div><div class="s">first to 11, win by 2</div></div></div>
+      <div class="table-wrap"><table id="pTable"></table></div>`;
+    const rows = m.fairTable().map((r) => ({ ...r, description: TT.describe(r.market, r.selection, r.line, "Player A", "Player B") }));
+    renderTable($("#pTable"), [
+      { key: "market", label: "Market", nosort: true, html: (r) => esc(MARKETS[r.market]) },
+      { key: "description", label: "Selection", nosort: true },
+      { key: "p_win", label: "Win chance", num: true, nosort: true, html: (r) => pct(r.p_win) },
+      { key: "p_push", label: "Push", num: true, nosort: true, html: (r) => r.p_push ? pct(r.p_push) : "" },
+      { key: "fair_price", label: "Fair odds", num: true, nosort: true, html: (r) => odds(r.fair_price) },
+      { key: "need", label: "Bet at or above (3% edge)", num: true, nosort: true, html: (r) => r.p_win > 0 ? odds(1 + (0.03 + (1 - r.p_win - r.p_push)) / r.p_win) : "–" },
+    ], rows, {});
+  } catch (err) { $("#pOut").innerHTML = `<p class="neg">${esc(err.message)}</p>`; }
+}
+$("#pForm").addEventListener("submit", runPricer);
+
+// ------------------------------------------------------------------ ratings
+function renderRatings() {
+  const rows = S.ratings ? S.ratings.leaderboard(+$("#rMin").value || 0) : [], text = $("#rText").value.trim().toLowerCase();
+  renderTable($("#ratingsTable"), [
+    { key: "rank", label: "#", num: true },
+    { key: "player", label: "Player" },
+    { key: "rating", label: "Rating", num: true, html: (r) => r.rating.toFixed(3) },
+    { key: "sd", label: "± sd", num: true, html: (r) => r.sd.toFixed(3) },
+    { key: "p_vs_avg", label: "P(point) v avg", num: true, html: (r) => pct(r.p_vs_avg, 2) },
+    { key: "matches", label: "Matches", num: true },
+    { key: "win_pct", label: "Win %", num: true, html: (r) => pct(r.win_pct) },
+    { key: "point_pct", label: "Points won", num: true, html: (r) => pct(r.point_pct) },
+  ], rows.map((r, i) => ({ ...r, rank: i + 1 })).filter((r) => !text || r.player.toLowerCase().includes(text)), { sortKey: "rating", empty: "Load a results file to build ratings." });
+}
+$("#rText").addEventListener("input", renderRatings);
+$("#rMin").addEventListener("change", renderRatings);
+
+// ------------------------------------------------------------------ charts
+function niceTicks(lo, hi, n) {
+  const span = hi - lo, s0 = 10 ** Math.floor(Math.log10(span / n)), err = span / n / s0;
+  const step = s0 * (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1), out = [];
+  for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) out.push(+t.toFixed(10));
+  return out;
+}
+function lineChart(el, points) {
+  const W = Math.max(300, el.clientWidth), H = 250, L = 52, R = 12, T = 12, B = 28;
+  if (points.length < 2) { el.innerHTML = '<div class="empty">Not enough bets to chart.</div>'; return; }
+  const xs = points.map((p) => p.x), ys = points.map((p) => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys); const pad = (y1 - y0) * 0.08 || 1; y0 -= pad; y1 += pad;
+  const sx = (x) => L + (x - x0) / (x1 - x0 || 1) * (W - L - R), sy = (y) => T + (y1 - y) / (y1 - y0) * (H - T - B);
+  const grid = niceTicks(y0, y1, 5).map((t) => `<line class="gridline" x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}"/><text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${t}u</text>`).join("");
+  const d = points.map((p, i) => `${i ? "L" : "M"}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join("");
+  const area = `${d}L${sx(x1).toFixed(1)},${sy(0).toFixed(1)}L${sx(x0).toFixed(1)},${sy(0).toFixed(1)}Z`;
+  const last = points[points.length - 1];
+  el.innerHTML = `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative profit by bet number">
+    <g class="axis">${grid}<text x="${W - R}" y="${H - 6}" text-anchor="end">bet number</text></g>
+    <path d="${area}" fill="var(--accent)" fill-opacity=".08"/>
+    <line class="zero" x1="${L}" x2="${W - R}" y1="${sy(0)}" y2="${sy(0)}"/>
+    <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${sx(last.x)}" cy="${sy(last.y)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    <line class="xhair" y1="${T}" y2="${H - B}" stroke="var(--ink-3)" stroke-width="1" visibility="hidden"/>
+    <circle class="xdot" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
+    <rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg><div class="tooltip" hidden></div></div>`;
+  const svg = el.querySelector("svg"), tip = el.querySelector(".tooltip"), hair = svg.querySelector(".xhair"), dot = svg.querySelector(".xdot");
+  const move = (clientX) => {
+    const box = svg.getBoundingClientRect(), k = W / box.width, x = x0 + ((clientX - box.left) * k - L) / (W - L - R) * (x1 - x0);
+    let best = points[0]; for (const p of points) if (Math.abs(p.x - x) < Math.abs(best.x - x)) best = p;
+    const px = sx(best.x), py = sy(best.y);
+    hair.setAttribute("x1", px); hair.setAttribute("x2", px); hair.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("visibility", "visible");
+    tip.innerHTML = `bet ${best.x}<br><b>${units(best.y)}</b><br><span class="muted">${esc(when(best.t))}</span>`; tip.hidden = false;
+    tip.style.left = Math.min(px / k + 12, box.width - tip.offsetWidth - 4) + "px"; tip.style.top = (py / k - 10) + "px";
+  };
+  const hit = svg.querySelector(".hit");
+  hit.addEventListener("pointermove", (ev) => move(ev.clientX));
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; hair.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+}
+function calibChart(el, buckets) {
+  const W = 420, H = 300, L = 44, T = 12, Sz = Math.min(W - L - 12, H - T - 36), sx = (v) => L + v * Sz, sy = (v) => T + (1 - v) * Sz;
+  const grid = [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => `<line class="gridline" x1="${sx(0)}" x2="${sx(1)}" y1="${sy(t)}" y2="${sy(t)}"/>
+    <text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${Math.round(t * 100)}%</text><text x="${sx(t)}" y="${sy(0) + 16}" text-anchor="middle">${Math.round(t * 100)}%</text>`).join("");
+  const dots = buckets.map((b, i) => { const x = sx(b.implied_devigged), y = sy(b.actual), lo = Math.max(0, b.actual - 1.96 * b.se), hi = Math.min(1, b.actual + 1.96 * b.se);
+    return `<g class="cdot" data-i="${i}"><line x1="${x}" x2="${x}" y1="${sy(hi)}" y2="${sy(lo)}" stroke="var(--ink-3)" stroke-width="1"/>
+      <circle cx="${x}" cy="${y}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/><circle cx="${x}" cy="${y}" r="14" fill="transparent"/></g>`; }).join("");
+  el.innerHTML = `<div class="chart" style="max-width:460px"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Market probability against actual win rate">
+    <g class="axis">${grid}<text x="${sx(0.5)}" y="${H - 4}" text-anchor="middle">Market chance (margin removed)</text></g>
+    <line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(1)}" y2="${sy(1)}" stroke="var(--ink-3)" stroke-dasharray="4 4" stroke-width="1"/>${dots}</svg><div class="tooltip" hidden></div></div>`;
+  const tip = el.querySelector(".tooltip"), box0 = el.querySelector(".chart");
+  el.querySelectorAll(".cdot").forEach((g) => {
+    g.addEventListener("pointerenter", () => {
+      const b = buckets[+g.dataset.i]; tip.innerHTML = `<b>${esc(b.bucket)}</b><br>market ${pct(b.implied_devigged)} · actual ${pct(b.actual)}<br>${b.n} sides`; tip.hidden = false;
+      const c = g.querySelector("circle").getBoundingClientRect(), box = box0.getBoundingClientRect();
+      tip.style.left = Math.min(c.right - box.left + 6, box.width - tip.offsetWidth - 4) + "px"; tip.style.top = (c.top - box.top - 8) + "px";
+    });
+    g.addEventListener("pointerleave", () => { tip.hidden = true; });
+  });
+}
+
+// ------------------------------------------------------------------ backtest
+$("#btGo").onclick = async () => {
+  const btn = $("#btGo"); btn.disabled = true; btn.textContent = "Running…";
+  $("#btOut").innerHTML = '<div class="sub">Replaying matches…</div><div class="progress"><div id="btBar"></div></div>';
+  try {
+    const bt = await TT.runBacktest(S.results, S.quotes, S.config, {}, { onProgress: (f) => { const bar = $("#btBar"); if (bar) bar.style.width = (f * 100).toFixed(0) + "%"; } });
+    S.backtest = bt; renderBacktest(bt);
+  } catch (err) { $("#btOut").innerHTML = `<p class="neg">${esc(err.message)}</p>`; }
+  btn.disabled = false; btn.textContent = "Run backtest";
+};
+function renderBacktest(bt) {
+  const p = bt.prediction, b = bt.betting, sig = b.n && Math.abs(b.roi) >= 2 * b.roi_se;
+  const tiles = b.n ? `<div class="tiles">
+    <div class="tile"><div class="k">Bets</div><div class="v">${b.n.toLocaleString()}</div><div class="s">${units(b.staked)} staked · avg odds ${b.avg_price.toFixed(2)}</div></div>
+    <div class="tile"><div class="k">Return on stake</div><div class="v ${sig ? (b.roi > 0 ? "pos" : "neg") : ""}">${pct(b.roi, 2)}</div><div class="s">± ${pct(b.roi_se, 2)} s.e.${sig ? "" : " · could be luck"}</div></div>
+    <div class="tile"><div class="k">Closing-line value</div><div class="v ${b.avg_clv > 0 ? "pos" : "neg"}">${pct(b.avg_clv, 2)}</div><div class="s">${pct(b.pct_positive_clv)} of bets beat the close</div></div>
+    <div class="tile"><div class="k">Claimed edge</div><div class="v">${pct(b.avg_edge, 2)}</div><div class="s">the gap to CLV is model overconfidence</div></div>
+    <div class="tile"><div class="k">Max drawdown</div><div class="v">${units(b.max_drawdown)}</div><div class="s">of a ${bt.bankroll}u bankroll</div></div></div>`
+    : '<div class="empty">No bets were placed. Backtesting needs odds with open and close snapshots whose match_id matches the results.</div>';
+  const breakdown = (obj, label) => `<div class="table-wrap"><table><thead><tr><th scope="col">${label}</th><th class="num" scope="col">Bets</th><th class="num" scope="col">Staked</th><th class="num" scope="col">Profit</th><th class="num" scope="col">Return</th><th class="num" scope="col">CLV</th></tr></thead><tbody>` +
+    Object.entries(obj).sort().map(([k, v]) => `<tr><td>${esc(MARKETS[k] || k)}</td><td class="num">${v.n}</td><td class="num">${units(v.staked)}</td><td class="num ${v.profit >= 0 ? "pos" : "neg"}">${units(v.profit)}</td><td class="num">${pct(v.roi, 2)}</td><td class="num ${v.avg_clv > 0 ? "pos" : ""}">${pct(v.avg_clv, 2)}</td></tr>`).join("") + "</tbody></table></div>";
+  const predTable = p.n ? `<div class="table-wrap"><table><thead><tr><th scope="col">Model</th><th class="num" scope="col">Log loss</th><th class="num" scope="col">Brier</th><th class="num" scope="col">Picked winner</th></tr></thead><tbody>` +
+    [["market", "Closing market"], ["blend", "Market + ratings"], ["ratings", "Point ratings"], ["elo", "Win/loss Elo"]].map(([k, l]) =>
+      `<tr><td>${l}</td><td class="num">${p[k].log_loss.toFixed(4)}</td><td class="num">${p[k].brier.toFixed(4)}</td><td class="num">${pct(p[k].accuracy)}</td></tr>`).join("") +
+    `</tbody></table></div><p class="hint" style="margin-top:8px">${p.n.toLocaleString()} matches where both players had history. Lower log loss is better; beating the closing market is rare.</p>`
+    : '<div class="empty">Needs results with matching closing odds.</div>';
+  const cb = bt.calibration;
+  const calibTableHtml = `<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th scope="col">Bucket</th><th class="num" scope="col">Sides</th><th class="num" scope="col">Proportional</th><th class="num" scope="col">Margin removed</th><th class="num" scope="col">Actual</th><th class="num" scope="col">± s.e.</th></tr></thead><tbody>` +
+    cb.map((x) => `<tr><td>${esc(x.bucket)}</td><td class="num">${x.n}</td><td class="num">${pct(x.implied_multiplicative)}</td><td class="num">${pct(x.implied_devigged)}</td><td class="num">${pct(x.actual)}</td><td class="num">${pct(x.se)}</td></tr>`).join("") + "</tbody></table></div>";
+  $("#btOut").innerHTML = tiles + (b.n ? '<h3>Cumulative profit</h3><div id="curve"></div>' : "") +
+    `<div class="grid2" style="margin-top:4px"><div><h3>Prediction quality</h3>${predTable}</div><div><h3>Market calibration (favourite-longshot check)</h3>${cb.length ? '<div id="calib"></div>' + calibTableHtml : '<div class="empty">No closing odds.</div>'}</div></div>` +
+    (b.n ? `<div class="grid2"><div><h3>By market</h3>${breakdown(b.by_market, "Market")}</div><div><h3>By book</h3>${breakdown(b.by_book, "Book")}</div></div>` : "");
+  if (b.n) lineChart($("#curve"), b.curve.map((c) => ({ x: c.i + 1, y: c.profit, t: c.t })));
+  if (cb.length) calibChart($("#calib"), cb);
+}
+
+// ------------------------------------------------------------------ data + settings
+const TPL_RESULTS = "match_id,start_time,tournament,player_a,player_b,score,best_of\nm1,2026-11-12T09:30,Czech Liga Pro,Player One,Player Two,11-7 9-11 11-5 11-8,5\n";
+const TPL_ODDS = "match_id,start_time,tournament,player_a,player_b,book,market,selection,line,price,snapshot\n" +
+  ["ML,A,,1.72", "ML,B,,2.05", "GAME_HCP,A,-1.5,2.30", "GAME_HCP,B,1.5,1.55", "GAMES_TOTAL,OVER,3.5,1.40", "GAMES_TOTAL,UNDER,3.5,2.75"]
+    .map((x) => `m2,2026-11-13T10:00,TT Cup,Player Three,Player Four,BookA,${x},current`).join("\n") + "\n";
+$("#tplResults").textContent = TPL_RESULTS; $("#tplOdds").textContent = TPL_ODDS;
+$("#copyTpl").onclick = async () => {
+  try { await navigator.clipboard.writeText(TPL_ODDS); $("#tplMsg").textContent = "Copied."; }
+  catch (e) { const r = document.createRange(); r.selectNodeContents($("#tplOdds")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#tplMsg").textContent = "Selected. Press Ctrl+C or ⌘C to copy."; }
+};
+
+async function readFile(file, kind) {
+  const text = await file.text();
+  if (!kind) kind = /(^|,)\s*score\s*(,|$)/i.test(text.split(/\r?\n/)[0]) ? "results" : "odds";
+  $("#dataMsg").textContent = `Reading ${file.name}…`;
+  if (S.synthetic) { S.results = []; S.quotes = []; S.errors = []; S.synthetic = false; }
+  let errs;
+  if (kind === "results") { [S.results, errs] = TT.loadResults(text); S.errors = S.errors.filter((e) => !e.startsWith("results")).concat(errs); }
+  else { [S.quotes, errs] = TT.loadOdds(text); S.errors = S.errors.filter((e) => !e.startsWith("odds")).concat(errs); }
+  S.source = [S.results.length ? "your results" : "", S.quotes.length ? "your odds" : ""].filter(Boolean).join(" + ") || "no data";
+  $("#dataMsg").textContent = `Loaded ${file.name}: ${kind === "results" ? S.results.length + " results" : S.quotes.length + " prices"}${errs.length ? `, ${errs.length} rows skipped (listed below)` : ""}.`;
+  await refresh(kind === "results");
+}
+$("#upResults").onchange = (e) => e.target.files[0] && readFile(e.target.files[0], "results");
+$("#upOdds").onchange = (e) => e.target.files[0] && readFile(e.target.files[0], "odds");
+const drop = $("#drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", async (e) => { e.preventDefault(); drop.classList.remove("over"); for (const f of e.dataTransfer.files) await readFile(f, null); });
+$("#demoBtn").onclick = async () => { $("#dataMsg").textContent = ""; await loadDemo(); $("#dataMsg").textContent = "Demo board reloaded."; };
+$("#clearBtn").onclick = async () => { S.results = []; S.quotes = []; S.errors = []; S.synthetic = false; S.source = "no data"; S.sigmaFit = null; await refresh(); $("#dataMsg").textContent = "Cleared. Load a results or odds file to start."; };
+function renderErrors() { $("#errors").innerHTML = S.errors.slice(0, 50).map(esc).join("<br>") + (S.errors.length > 50 ? `<br>… ${S.errors.length - 50} more` : ""); }
+
+const SETTINGS = [
+  ["min_edge", "Min edge (0.03 = 3%)", "number", 0.005], ["max_edge", "Ignore edges above", "number", 0.01],
+  ["min_odds", "Min odds", "number", 0.05], ["max_odds", "Max odds", "number", 0.5],
+  ["model_weight", "Ratings weight (0 to 1)", "number", 0.05], ["min_model_matches", "Matches before ratings count", "number", 1],
+  ["derivative_consensus_weight", "Derivatives: weight on other books", "number", 0.05],
+  ["devig_method", "Margin removal", "select", TT.DEVIG_METHODS], ["sharp_books", "Sharp books (comma list)", "text"],
+  ["sharp_weight", "Sharp book weight", "number", 0.5], ["min_books", "Other books needed", "number", 1],
+  ["kelly_multiplier", "Kelly fraction", "number", 0.05], ["max_stake", "Max stake (share of bankroll)", "number", 0.005],
+  ["game_sigma", "Game sigma (blank = fit from results)", "number", 0.01], ["bet_into_sharp", "List bets at sharp books", "select", ["no", "yes"]],
+];
+function renderSettings() {
+  const c = S.config;
+  $("#settings").innerHTML = SETTINGS.map(([k, label, type, extra]) => {
+    let v = c[k]; if (Array.isArray(v)) v = v.join(", "); if (k === "bet_into_sharp") v = v ? "yes" : "no";
+    if (k === "game_sigma" && S.autoSigma) v = "";
+    const input = type === "select" ? `<select id="cfg-${k}" data-k="${k}">${extra.map((o) => `<option ${String(v) === o ? "selected" : ""}>${o}</option>`).join("")}</select>`
+      : `<input id="cfg-${k}" data-k="${k}" type="${type}" ${type === "number" ? `step="${extra}"` : ""} value="${esc(v)}" ${k === "game_sigma" ? `placeholder="fitted: ${esc(c.game_sigma)}"` : ""}>`;
+    return `<label for="cfg-${k}">${esc(label)}${input}</label>`;
+  }).join("");
+  const fit = S.sigmaFit;
+  $("#cfgMsg").textContent = fit && fit.matches ? `Sigma ${fit.sigma} fitted from ${fit.matches.toLocaleString()} matches.` : "";
+}
+$("#saveCfg").onclick = async () => {
+  const next = { ...S.config };
+  for (const el of document.querySelectorAll("#settings [data-k]")) {
+    const k = el.dataset.k, v = el.value.trim();
+    if (k === "game_sigma") { S.autoSigma = v === ""; if (v !== "") next.game_sigma = Math.max(0, +v); continue; }
+    if (k === "bet_into_sharp") next[k] = v === "yes";
+    else if (k === "devig_method") next[k] = v;
+    else if (k === "sharp_books") next[k] = v.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    else { const n = +v; if (v === "" || !isFinite(n)) { $("#cfgMsg").innerHTML = `<span class="neg">${esc(k)} needs a number.</span>`; return; } next[k] = n; }
+  }
+  S.config = next; store.set("config", next); store.set("autoSigma", S.autoSigma);
+  await refresh(); $("#cfgMsg").textContent = "Applied.";
+};
+$("#resetCfg").onclick = async () => { S.config = { ...TT.SCAN_DEFAULTS }; S.autoSigma = true; store.set("config", null); store.set("autoSigma", true); await refresh(); $("#cfgMsg").textContent = "Defaults restored."; };
+
+// ------------------------------------------------------------------ file saves (downloads capability)
+function toCSV(rows, cols) {
+  const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  return cols.join(",") + "\n" + rows.map((r) => cols.map((c) => cell(r[c])).join(",")).join("\n") + "\n";
+}
+(async () => {
+  const dl = window.claude?.use ? await window.claude.use("downloads").catch(() => null) : null;
+  if (!dl) return;
+  const save = async (filename, data, msgEl) => {
+    try { await dl.save({ filename, data }); if (msgEl) msgEl.textContent = "Saved."; }
+    catch (e) { if (msgEl && e?.code !== "declined") msgEl.textContent = e?.code === "rate_limited" ? "A save prompt is already open." : "Saving isn't available here."; }
+  };
+  $("#exportBets").hidden = false; $("#saveTpl").hidden = false;
+  $("#exportBets").onclick = () => {
+    const rows = filteredBets().map((o) => ({ ...o, start_time: o.start_time ? new Date(o.start_time).toISOString() : "", flags: o.flags.filter((f) => f !== "opportunity").join(" "),
+      edge: o.edge.toFixed(4), fair_price: o.fair_price.toFixed(3), stake: o.stake.toFixed(4), p_win: o.p_win.toFixed(4) }));
+    save("tt-edge-value-bets.csv", toCSV(rows, ["start_time", "tournament", "player_a", "player_b", "book", "market", "selection", "line", "description", "price", "fair_price", "p_win", "edge", "stake", "flags"]), null);
+  };
+  $("#saveTpl").onclick = async () => { await save("odds-template.csv", TPL_ODDS, $("#tplMsg")); await save("results-template.csv", TPL_RESULTS, $("#tplMsg")); };
+})();
+
+// ------------------------------------------------------------------ start
+showTab(store.get("tab") || "bets");
+$("#pSig").value = 0.1;
+runPricer();
+loadDemo().then(() => { $("#pSig").value = S.config.game_sigma; runPricer(); });
+</script>

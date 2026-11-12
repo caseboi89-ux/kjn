@@ -1,0 +1,723 @@
+<title>TT Edge</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: a scanner console. Header with live board status, tabbed workspaces, dense tables first, charts in the backtest. */
+:root {
+  --bg: #f5f6f4;
+  --surface: #fdfdfc;
+  --surface-2: #eef0ec;
+  --line: #dfe2dc;
+  --ink: #101411;
+  --ink-2: #4c534d;
+  --ink-3: #7a817b;
+  --accent: #1d5fb8;          /* tournament-table blue */
+  --accent-ink: #ffffff;
+  --ball: #e8742a;            /* match-ball orange, used sparingly */
+  --good: #13803a;
+  --good-bg: #e2f3e6;
+  --warn: #8a5800;
+  --warn-bg: #fbefd2;
+  --bad: #b3332f;
+  --bad-bg: #fae4e2;
+  --grid: #e6e8e3;
+  --shadow: 0 1px 2px rgba(16, 20, 17, .05), 0 3px 10px rgba(16, 20, 17, .04);
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1311; --surface: #161b18; --surface-2: #1e2420; --line: #2c3430;
+    --ink: #eef1ee; --ink-2: #bcc4be; --ink-3: #87908a;
+    --accent: #5b9bf0; --accent-ink: #08111f; --ball: #f08a45;
+    --good: #5fcf7e; --good-bg: #173322; --warn: #f0c060; --warn-bg: #3a2f14; --bad: #f08a84; --bad-bg: #3d1d1b;
+    --grid: #252c28; --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1311; --surface: #161b18; --surface-2: #1e2420; --line: #2c3430;
+  --ink: #eef1ee; --ink-2: #bcc4be; --ink-3: #87908a;
+  --accent: #5b9bf0; --accent-ink: #08111f; --ball: #f08a45;
+  --good: #5fcf7e; --good-bg: #173322; --warn: #f0c060; --warn-bg: #3a2f14; --bad: #f08a84; --bad-bg: #3d1d1b;
+  --grid: #252c28; --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-body); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 0 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 18px 0 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { font: 700 22px/1.1 var(--font-display); margin: 0; letter-spacing: -.02em; }
+.brand h1 i { font-style: normal; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--ball); margin-left: 3px; transform: translateY(-1px); }
+.brand span { color: var(--ink-3); font-size: 13px; }
+.status { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
+.badge.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.badge.busy::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--accent); border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .badge.busy::before { animation: none; } }
+.spacer { flex: 1; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; }
+button:hover { border-color: var(--ink-3); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+button:disabled { opacity: .55; cursor: progress; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input, select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; min-width: 0; }
+a { color: var(--accent); }
+nav { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; scrollbar-width: thin; }
+nav button { border: 0; border-radius: 0; background: none; padding: 10px 14px; color: var(--ink-2); border-bottom: 2px solid transparent; white-space: nowrap; }
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px; min-width: 0; }
+.card h2 { font: 600 16px/1.3 var(--font-display); margin: 0 0 4px; letter-spacing: -.01em; text-wrap: balance; }
+h3 { font: 600 11.5px/1.3 var(--font-body); margin: 16px 0 6px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; }
+.hint { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; max-width: 78ch; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin-bottom: 12px; }
+.filters label, .form label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+.check { flex-direction: row !important; align-items: center; gap: 6px !important; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; max-width: 100%; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); }
+th[data-sort] { cursor: pointer; user-select: none; }
+th[data-sort]:hover { color: var(--ink); }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover td, tbody tr.click:focus-visible td { background: var(--surface-2); }
+td.num, th.num { text-align: right; }
+td.wrap { white-space: normal; min-width: 170px; }
+.sub { color: var(--ink-3); font-size: 12px; }
+.pos { color: var(--good); font-weight: 600; }
+.neg { color: var(--bad); }
+.muted { color: var(--ink-3); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin: 1px 3px 1px 0; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.chip.good { background: var(--good-bg); color: var(--good); border-color: transparent; }
+.chip.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.chip.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: 12px; color: var(--ink-2); }
+.tile .v { font: 600 23px/1.2 var(--font-display); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.form { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr)); gap: 12px; }
+.form input, .form select { width: 100%; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; }
+.drop.over { border-color: var(--accent); background: var(--surface-2); }
+.drop .row b { min-width: 70px; }
+.errors { max-height: 200px; overflow: auto; font: 12px/1.5 var(--font-mono); color: var(--bad); }
+pre.tpl { font: 12px/1.5 var(--font-mono); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto; margin: 6px 0; user-select: all; }
+.empty { padding: 28px; text-align: center; color: var(--ink-3); white-space: normal; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .axis text { fill: var(--ink-3); font-size: 11px; font-family: var(--font-body); }
+.chart .gridline { stroke: var(--grid); stroke-width: 1; }
+.chart .zero { stroke: var(--ink-3); stroke-width: 1; }
+.tooltip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px;
+  font-size: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, .15); white-space: nowrap; z-index: 5; }
+.progress { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin: 10px 0; }
+.progress > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; background: var(--surface); color: var(--ink);
+  width: min(1100px, calc(100vw - 24px)); max-height: calc(100vh - 48px); }
+dialog::backdrop { background: rgba(0, 0, 0, .45); }
+.dlg-head { display: flex; align-items: start; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); z-index: 2; }
+.dlg-head h2 { font: 600 17px/1.3 var(--font-display); margin: 0; }
+.dlg-body { padding: 16px; }
+.notice { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 16px; }
+.notice b { color: inherit; }
+footer { color: var(--ink-3); font-size: 12px; margin-top: 24px; max-width: 90ch; }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand"><h1>TT Edge<i aria-hidden="true"></i></h1><span>table tennis line scanner</span></div>
+  <div class="status" id="status"><span class="badge busy">Building demo board…</span></div>
+  <div class="spacer"></div>
+  <button id="themeBtn" type="button" title="Switch light and dark">Theme</button>
+</header>
+
+<nav role="tablist" id="tabs" aria-label="Sections">
+  <button role="tab" type="button" data-tab="bets" aria-selected="true">Value bets</button>
+  <button role="tab" type="button" data-tab="arbs" aria-selected="false">Arbitrage</button>
+  <button role="tab" type="button" data-tab="matches" aria-selected="false">Matches</button>
+  <button role="tab" type="button" data-tab="pricer" aria-selected="false">Pricer</button>
+  <button role="tab" type="button" data-tab="ratings" aria-selected="false">Ratings</button>
+  <button role="tab" type="button" data-tab="backtest" aria-selected="false">Backtest</button>
+  <button role="tab" type="button" data-tab="data" aria-selected="false">Data &amp; settings</button>
+</nav>
+
+<div class="notice" id="demoNotice"><b>Demo board.</b> These are fictional players and bookmakers generated in your browser so you can see how the
+  scanner works. Load your own odds and results on the <a href="#" data-goto="data">Data &amp; settings</a> tab to scan real prices.</div>
+
+<section class="panel" id="panel-bets">
+  <div class="card">
+    <div class="row"><h2>Mispriced lines</h2><div class="spacer"></div><button type="button" id="exportBets" hidden>Save as CSV</button></div>
+    <p class="hint">Prices that beat fair value. Fair value comes from the other books' margin-free prices, the point model and,
+      once players have enough history, the ratings. <b>Edge</b> is expected profit per unit staked. <b>Stake</b> is quarter Kelly,
+      capped, as a share of bankroll. Select a row to see the whole match board.</p>
+    <div class="filters">
+      <label>Min edge %<input type="number" id="fEdge" step="0.5" value="3"></label>
+      <label>Market<select id="fMarket"><option value="">All markets</option></select></label>
+      <label>Book<select id="fBook"><option value="">All books</option></select></label>
+      <label>Player or tournament<input type="search" id="fText" placeholder="Search"></label>
+      <label class="check"><input type="checkbox" id="fConsistent"> Only derivative inconsistencies</label>
+    </div>
+    <div class="table-wrap"><table id="betsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-arbs" hidden>
+  <div class="card">
+    <h2>Cross-book arbitrage</h2>
+    <p class="hint">Best prices across books whose implied chances add up to under 100%. Splitting the stake as shown returns the same
+      amount whoever wins. Soft-book arbs are often stale lines that get voided or cut, so check limits and retirement rules first.</p>
+    <div class="table-wrap"><table id="arbsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-matches" hidden>
+  <div class="card">
+    <h2>Matches on the board</h2>
+    <p class="hint">Fair match price from the blended point-win probability. Select a match to compare every book's price with fair value.</p>
+    <div class="filters"><label>Search<input type="search" id="mText" placeholder="Player or tournament"></label></div>
+    <div class="table-wrap"><table id="matchesTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-pricer" hidden>
+  <div class="card">
+    <h2>Match pricer</h2>
+    <p class="hint">Enter a match-winner price pair (decimal, American like +150, or fractional like 5/2). The margin comes off, the fair price
+      becomes a point-win probability, and every other market is priced from it. You can also enter the point probability directly.</p>
+    <form class="filters" id="pForm">
+      <label>Player A price<input id="pA" value="1.62" size="7" inputmode="decimal"></label>
+      <label>Player B price<input id="pB" value="2.35" size="7" inputmode="decimal"></label>
+      <label>or P(A wins a point)<input id="pP" placeholder="e.g. 0.53" size="9" inputmode="decimal"></label>
+      <label>Format<select id="pBo"><option value="5">Best of 5</option><option value="7">Best of 7</option></select></label>
+      <label>Game sigma<input type="number" id="pSig" step="0.05" min="0" value="0.1"></label>
+      <label>Margin removal<select id="pDevig"><option>power</option><option>shin</option><option>multiplicative</option><option>additive</option></select></label>
+      <button class="primary" type="submit">Price it</button>
+    </form>
+    <div id="pOut"></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-ratings" hidden>
+  <div class="card">
+    <h2>Player ratings</h2>
+    <p class="hint">Learned from every point in the results. <b>P(point) v avg</b> is the chance of winning a point against an average player.
+      Small gaps matter: 52% per point is about 64% per best-of-5 match.</p>
+    <div class="filters">
+      <label>Search<input type="search" id="rText" placeholder="Player"></label>
+      <label>Min matches<input type="number" id="rMin" value="5" min="0"></label>
+    </div>
+    <div class="table-wrap"><table id="ratingsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-backtest" hidden>
+  <div class="card">
+    <div class="row"><h2>Walk-forward backtest</h2><div class="spacer"></div><button class="primary" type="button" id="btGo">Run backtest</button></div>
+    <p class="hint" style="margin-top:8px">Replays past matches in time order. Ratings only know earlier results, bets take the opening prices,
+      and closing prices measure closing-line value (CLV). CLV tells you sooner and more reliably than profit whether the method finds real mispricing.</p>
+    <div id="btOut"><div class="empty">Run the backtest to replay the history (about ten seconds for the demo).</div></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-data" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>Load your data</h2>
+      <p class="hint">Files are read in this browser tab only and are not uploaded anywhere. Results train the ratings. Odds rows with
+        <code>snapshot</code> = <code>current</code> are scanned (or <code>close</code> when there are none).</p>
+      <div class="drop" id="drop">
+        <div class="row"><b>Results</b><input type="file" id="upResults" accept=".csv,text/csv"></div>
+        <div class="row"><b>Odds</b><input type="file" id="upOdds" accept=".csv,text/csv"></div>
+        <div class="sub">Or drop CSV files here. A file with a <code>score</code> column is read as results.</div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="demoBtn">Reload demo board</button>
+        <button type="button" id="clearBtn">Clear all data</button>
+      </div>
+      <div id="dataMsg" class="hint" style="margin-top:10px" role="status"></div>
+      <div id="errors" class="errors"></div>
+      <h3>Results format</h3>
+      <pre class="tpl" id="tplResults"></pre>
+      <h3>Odds format</h3>
+      <pre class="tpl" id="tplOdds"></pre>
+      <div class="row"><button type="button" id="copyTpl">Copy odds template</button><button type="button" id="saveTpl" hidden>Save both templates</button><span id="tplMsg" class="sub"></span></div>
+      <p class="hint" style="margin-top:10px">Markets: ML, GAME_HCP, GAMES_TOTAL, CORRECT_SCORE, POINTS_TOTAL, POINTS_HCP, G1_ML, G1_POINTS_TOTAL
+        (aliases such as moneyline or set handicap work). Selections: A/B, home/away or a player's name, OVER/UNDER, or a score like 3-1.
+        Handicap lines are from the selection's side (B +1.5).</p>
+    </div>
+    <div class="card">
+      <h2>Settings</h2>
+      <p class="hint">Applying re-runs the scan. Settings are remembered in this browser.</p>
+      <form class="form" id="settings"></form>
+      <div class="row" style="margin-top:12px"><button class="primary" type="button" id="saveCfg">Apply</button>
+        <button type="button" id="resetCfg">Reset to defaults</button><span id="cfgMsg" class="sub" role="status"></span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Fair prices are estimates. A bet with positive edge still loses often, soft books limit winning accounts, and several high-volume table tennis
+  leagues have had match-fixing investigations. Bet only where it is legal for you and only what you can afford to lose.
+  Help: begambleaware.org · 1-800-GAMBLER (US).
+</footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <div class="dlg-head"><div id="dlgTitle" style="flex:1;min-width:0"></div><button type="button" id="dlgClose">Close</button></div>
+  <div class="dlg-body" id="dlgBody"></div>
+</dialog>
+
+<script>
+/*ENGINE*/
+</script>
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pct = (x, d = 1) => x == null || !isFinite(x) ? "–" : (x * 100).toFixed(d) + "%";
+const odds = (x) => x == null || !isFinite(x) ? "–" : Number(x).toFixed(2);
+const units = (x) => x == null ? "–" : (Math.round(x * 100) / 100).toLocaleString() + "u";
+const DTF = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const when = (t) => t == null ? "" : DTF.format(new Date(t));
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem("ttedge:" + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem("ttedge:" + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } },
+};
+const MARKETS = TT.MARKET_LABELS;
+const FLAGS = {
+  beats_consensus: ["good", "consensus", "Beats the other books' margin-free consensus on its own"],
+  inconsistent_with_own_ml: ["good", "inconsistent", "This derivative disagrees with the same book's own match-winner price"],
+  thin_consensus: ["warn", "thin", "Only one other book quotes this market"],
+  ratings_disagree_with_market: ["warn", "ratings differ", "Ratings and market disagree by over 15 points on the match"],
+  suspicious_edge: ["bad", "too good", "Edge above the sanity cap: likely a stale line or a data error"],
+  sharp_book_vs_soft_consensus: ["warn", "sharp book", "A sharp book judged only by softer books; not listed as a bet by default"],
+  ratings_only: ["warn", "ratings only", "No market reference; fair value comes from ratings alone"],
+  consensus_only: ["", "consensus only", "No point model available; fair value is the consensus alone"],
+};
+const chips = (flags) => flags.filter((f) => f !== "opportunity").map((f) => {
+  const [cls, label, tip] = FLAGS[f] || ["", f, f];
+  return `<span class="chip ${cls}" title="${esc(tip)}">${esc(label)}</span>`;
+}).join("");
+
+// ------------------------------------------------------------------ state
+const S = {
+  source: "", synthetic: false, results: [], quotes: [], errors: [], busy: "",
+  config: { ...TT.SCAN_DEFAULTS, ...(store.get("config") || {}) }, autoSigma: store.get("autoSigma") ?? true,
+  sigmaFit: null, ratings: null, scan: null, backtest: null,
+};
+const sleep = () => new Promise((r) => setTimeout(r, 0));
+
+async function refresh(refitSigma = false) {
+  S.busy = refitSigma && S.autoSigma ? "Fitting model…" : "Scanning…"; renderStatus(); await sleep();
+  if (S.autoSigma) {
+    if (refitSigma || !S.sigmaFit) {
+      S.sigmaFit = S.results.some((r) => r.score.hasPoints) ? await TT.calibrateSigma(S.results) : null;
+    }
+    S.config.game_sigma = S.sigmaFit && S.sigmaFit.matches >= 200 ? S.sigmaFit.sigma : 0;
+  }
+  S.ratings = new TT.PointRating();
+  for (const r of S.results) S.ratings.update(r.player_a, r.player_b, r.score, r.start_time);
+  const snaps = new Set(S.quotes.map((q) => q.snapshot));
+  S.scan = TT.scan(S.quotes, S.config, S.ratings, snaps.has("current") ? "current" : snaps.has("close") ? "close" : null);
+  S.backtest = null; S.busy = "";
+  renderAll();
+}
+
+async function loadDemo() {
+  S.busy = "Building demo board…"; renderStatus(); await sleep();
+  [S.results, S.quotes] = TT.generateDemo();
+  S.errors = []; S.source = "Demo board"; S.synthetic = true;
+  await refresh(true);
+}
+
+// ------------------------------------------------------------------ theme + tabs
+(function initTheme() {
+  const saved = store.get("theme");
+  if (saved) document.documentElement.dataset.theme = saved;
+  $("#themeBtn").onclick = () => {
+    const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next; store.set("theme", next);
+  };
+})();
+function showTab(name) {
+  document.querySelectorAll("#tabs button").forEach((x) => x.setAttribute("aria-selected", String(x.dataset.tab === name)));
+  document.querySelectorAll(".panel").forEach((p) => { p.hidden = p.id !== "panel-" + name; });
+  store.set("tab", name);
+  if (name === "ratings") renderRatings();
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
+document.querySelectorAll("[data-goto]").forEach((a) => a.onclick = (e) => { e.preventDefault(); showTab(a.dataset.goto); });
+
+// ------------------------------------------------------------------ table helper
+function renderTable(el, cols, rows, opts = {}) {
+  const st = el._sort || (el._sort = { key: opts.sortKey, dir: opts.sortDir || -1 });
+  if (st.key) {
+    const col = cols.find((c) => c.key === st.key), val = col && col.sortVal ? col.sortVal : (r) => r[st.key];
+    rows = rows.slice().sort((a, b) => { const x = val(a), y = val(b); if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * st.dir; });
+  }
+  const limit = opts.limit || 300;
+  const head = "<thead><tr>" + cols.map((c) => `<th class="${c.num ? "num" : ""}" ${c.nosort ? "" : `data-sort="${c.key}"`} scope="col">${esc(c.label)}${st.key === c.key ? (st.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("") + "</tr></thead>";
+  const body = rows.length ? rows.slice(0, limit).map((r, i) => `<tr class="${opts.onRow ? "click" : ""}" data-i="${i}" ${opts.onRow ? 'tabindex="0"' : ""}>` +
+      cols.map((c) => `<td class="${c.num ? "num" : ""} ${c.cls ? c.cls(r) : ""}">${c.html ? c.html(r) : esc(r[c.key])}</td>`).join("") + "</tr>").join("")
+    : `<tr><td colspan="${cols.length}" class="empty">${esc(opts.empty || "Nothing to show")}</td></tr>`;
+  const more = rows.length > limit ? `<tr><td colspan="${cols.length}" class="muted">${rows.length - limit} more rows. Narrow the filters to see them.</td></tr>` : "";
+  el.innerHTML = head + "<tbody>" + body + more + "</tbody>";
+  el.querySelectorAll("th[data-sort]").forEach((th) => th.onclick = () => { st.dir = st.key === th.dataset.sort ? -st.dir : -1; st.key = th.dataset.sort; renderTable(el, cols, rows, opts); });
+  if (opts.onRow) el.querySelectorAll("tbody tr.click").forEach((tr) => {
+    const go = () => opts.onRow(rows.slice(0, limit)[+tr.dataset.i]);
+    tr.onclick = go; tr.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+  });
+}
+
+// ------------------------------------------------------------------ rendering
+function renderStatus() {
+  const sc = S.scan;
+  $("#status").innerHTML = [
+    S.busy ? `<span class="badge busy">${esc(S.busy)}</span>` : "",
+    S.synthetic ? `<span class="badge warn">Demo data, not real prices</span>` : S.source ? `<span class="badge">${esc(S.source)}</span>` : "",
+    sc ? `<span class="badge">${sc.events.length} matches · ${S.quotes.length.toLocaleString()} prices</span>` : "",
+    `<span class="badge">${S.results.length.toLocaleString()} results</span>`,
+    sc ? `<span class="badge">${sc.opportunities.length} value bets · ${sc.arbitrages.length} arbs</span>` : "",
+    S.errors.length ? `<span class="badge warn">${S.errors.length} rows skipped</span>` : "",
+  ].join("");
+  $("#demoNotice").hidden = !S.synthetic;
+}
+function renderAll() {
+  renderStatus(); fillFilters(); renderBets(); renderArbs(); renderMatches(); renderSettings(); renderErrors();
+  if (!$("#panel-ratings").hidden) renderRatings();
+  if (!$("#panel-backtest").hidden || S.backtest == null) $("#btOut").innerHTML = '<div class="empty">Run the backtest to replay the history (about ten seconds for the demo).</div>';
+}
+function fillFilters() {
+  const m = $("#fMarket"), b = $("#fBook"), mv = m.value, bv = b.value, books = [...new Set(S.quotes.map((q) => q.book))].sort();
+  m.innerHTML = '<option value="">All markets</option>' + Object.entries(MARKETS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+  b.innerHTML = '<option value="">All books</option>' + books.map((x) => `<option>${esc(x)}</option>`).join("");
+  m.value = mv; b.value = books.includes(bv) ? bv : "";
+  if (!$("#fEdge").dataset.touched) $("#fEdge").value = +(S.config.min_edge * 100).toFixed(2);
+}
+function filteredBets() {
+  const minEdge = parseFloat($("#fEdge").value || "0") / 100, mkt = $("#fMarket").value, book = $("#fBook").value;
+  const text = $("#fText").value.trim().toLowerCase(), onlyInc = $("#fConsistent").checked;
+  return (S.scan?.opportunities || []).filter((o) => o.edge >= minEdge && (!mkt || o.market === mkt) && (!book || o.book === book)
+    && (!onlyInc || o.flags.includes("inconsistent_with_own_ml")) && (!text || `${o.player_a} ${o.player_b} ${o.tournament}`.toLowerCase().includes(text)));
+}
+function renderBets() {
+  renderTable($("#betsTable"), [
+    { key: "start_time", label: "Start", html: (r) => esc(when(r.start_time)) },
+    { key: "player_a", label: "Match", html: (r) => `${esc(r.player_a)} <span class="muted">v</span> ${esc(r.player_b)}<div class="sub">${esc(r.tournament)}</div>` },
+    { key: "description", label: "Bet", html: (r) => `${esc(r.description)}<div class="sub">${esc(MARKETS[r.market])}</div>` },
+    { key: "book", label: "Book" },
+    { key: "price", label: "Price", num: true, html: (r) => `<b>${odds(r.price)}</b>` },
+    { key: "fair_price", label: "Fair", num: true, html: (r) => odds(r.fair_price) },
+    { key: "edge", label: "Edge", num: true, cls: () => "pos", html: (r) => pct(r.edge) },
+    { key: "stake", label: "Stake", num: true, html: (r) => pct(r.stake, 2) },
+    { key: "consensus_books", label: "Other books", num: true },
+    { key: "flags", label: "Why", nosort: true, cls: () => "wrap", html: (r) => chips(r.flags) },
+  ], filteredBets(), { sortKey: "edge", onRow: (r) => openEvent(r.match_id),
+    empty: S.quotes.length ? "No prices beat fair value at this edge. Lower the minimum edge or load more books." : "No odds loaded. Add an odds file on the Data & settings tab." });
+}
+function renderArbs() {
+  renderTable($("#arbsTable"), [
+    { key: "player_a", label: "Match", html: (r) => `${esc(r.player_a)} <span class="muted">v</span> ${esc(r.player_b)}<div class="sub">${esc(when(r.start_time))}</div>` },
+    { key: "market", label: "Market", html: (r) => esc(MARKETS[r.market]) },
+    { key: "legs", label: "Legs (stake share)", nosort: true, html: (r) => r.legs.map((l) =>
+      `<div>${esc(l.description)} @ <b>${odds(l.price)}</b> ${esc(l.book)} <span class="muted">(${pct(l.stake_share)})</span></div>`).join("") },
+    { key: "margin", label: "Locked return", num: true, cls: () => "pos", html: (r) => pct(r.margin, 2) },
+  ], S.scan?.arbitrages || [], { sortKey: "margin", onRow: (r) => openEvent(r.match_id), empty: "No arbitrage on the current board." });
+}
+function renderMatches() {
+  const text = $("#mText").value.trim().toLowerCase(), nOpp = {};
+  (S.scan?.opportunities || []).forEach((o) => nOpp[o.match_id] = (nOpp[o.match_id] || 0) + 1);
+  const rows = (S.scan?.events || []).filter((e) => !text || `${e.player_a} ${e.player_b} ${e.tournament}`.toLowerCase().includes(text)).map((e) => ({ ...e, n_opp: nOpp[e.match_id] || 0 }));
+  const f4 = (x) => x == null ? '<span class="muted">–</span>' : x.toFixed(4);
+  renderTable($("#matchesTable"), [
+    { key: "start_time", label: "Start", html: (r) => esc(when(r.start_time)) },
+    { key: "tournament", label: "Tournament" },
+    { key: "player_a", label: "Player A" },
+    { key: "player_b", label: "Player B" },
+    { key: "p_match", label: "Fair P(A)", num: true, html: (r) => pct(r.p_match) },
+    { key: "fair_ab", label: "Fair A / B", num: true, nosort: true, html: (r) => r.p_match ? `${odds(1 / r.p_match)} / ${odds(1 / (1 - r.p_match))}` : "–" },
+    { key: "p_point", label: "P(point)", num: true, html: (r) => f4(r.p_point) },
+    { key: "p_point_rating", label: "Ratings P(point)", num: true, html: (r) => f4(r.p_point_rating) },
+    { key: "books", label: "Books", num: true, sortVal: (r) => r.books.length, html: (r) => r.books.length },
+    { key: "n_opp", label: "Value bets", num: true, html: (r) => r.n_opp ? `<b>${r.n_opp}</b>` : '<span class="muted">0</span>' },
+  ], rows, { sortKey: "start_time", sortDir: 1, onRow: (r) => openEvent(r.match_id), empty: "No matches loaded." });
+}
+
+function openEvent(id) {
+  const e = S.scan.events.find((x) => x.match_id === id); if (!e) return;
+  const evals = S.scan.evaluations.filter((x) => x.match_id === id);
+  const f4 = (x) => x == null ? "–" : x.toFixed(4);
+  $("#dlgTitle").innerHTML = `<h2>${esc(e.player_a)} <span class="muted">v</span> ${esc(e.player_b)}</h2>
+    <div class="sub">${esc(e.tournament)} · ${esc(when(e.start_time))} · best of ${e.best_of} · P(point) ${f4(e.p_point)}
+    (market ${f4(e.p_point_market)}, ratings ${f4(e.p_point_rating)})</div>`;
+  const key = (r) => `${r.market}|${r.selection}|${r.line}`, rows = e.fair.map((f) => ({ ...f, key: key(f) })), byKey = {};
+  evals.forEach((v) => { (byKey[key(v)] = byKey[key(v)] || {})[v.book] = v; });
+  for (const k in byKey) if (!rows.find((f) => f.key === k)) { const v = Object.values(byKey[k])[0]; rows.push({ key: k, market: v.market, selection: v.selection, line: v.line, description: v.description, p_win: v.p_win, fair_price: v.fair_price }); }
+  rows.sort((a, b) => TT.MARKETS.indexOf(a.market) - TT.MARKETS.indexOf(b.market) || (a.line ?? 0) - (b.line ?? 0));
+  const head = `<tr><th scope="col">Market</th><th scope="col">Selection</th><th class="num" scope="col">Fair</th><th class="num" scope="col">Fair odds</th>${e.books.map((b) => `<th class="num" scope="col">${esc(b)}</th>`).join("")}</tr>`;
+  const body = rows.map((f) => `<tr><td>${esc(MARKETS[f.market])}</td><td>${esc(f.description)}</td><td class="num">${pct(f.p_win)}</td><td class="num">${odds(f.fair_price)}</td>` +
+    e.books.map((b) => { const q = (byKey[f.key] || {})[b]; if (!q) return '<td class="num muted">·</td>';
+      const cls = q.flags[0] === "opportunity" ? "pos" : q.edge < -0.08 ? "muted" : "";
+      return `<td class="num ${cls}" title="edge ${pct(q.edge)} against fair ${odds(q.fair_price)}${q.book_margin != null ? " · book margin " + pct(q.book_margin) : ""}">${odds(q.price)}<div class="sub ${q.edge > 0 ? "pos" : ""}">${q.edge > 0 ? "+" : ""}${pct(q.edge)}</div></td>`; }).join("") + "</tr>").join("");
+  $("#dlgBody").innerHTML = `<p class="hint">Each book's price and its edge (green = listed as a value bet). A book is always judged against fair value built from
+    the <i>other</i> books, so its edge can differ a little from the overall fair column.</p><div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  if (!$("#dlg").open) $("#dlg").showModal();
+}
+$("#dlgClose").onclick = () => $("#dlg").close();
+["#fEdge", "#fMarket", "#fBook", "#fText", "#fConsistent"].forEach((s) => $(s).addEventListener("input", () => { if (s === "#fEdge") $("#fEdge").dataset.touched = "1"; renderBets(); }));
+$("#mText").addEventListener("input", renderMatches);
+
+// ------------------------------------------------------------------ pricer
+function runPricer(e) {
+  e?.preventDefault();
+  const bo = +$("#pBo").value, sigma = Math.max(0, +$("#pSig").value || 0);
+  try {
+    let p, head;
+    if ($("#pP").value.trim()) {
+      p = parseFloat($("#pP").value);
+      if (!(p > 0 && p < 1)) throw new Error("Point probability must be between 0 and 1, for example 0.53.");
+    } else {
+      const a = TT.parsePrice($("#pA").value), b = TT.parsePrice($("#pB").value), [pa] = TT.devig([a, b], $("#pDevig").value);
+      p = TT.pointProbFromMatchProb(pa, bo, sigma);
+      head = `<div class="tile"><div class="k">Book margin</div><div class="v">${pct(1 / a + 1 / b - 1, 2)}</div><div class="s">${odds(a)} / ${odds(b)}</div></div>
+        <div class="tile"><div class="k">Fair P(A wins match)</div><div class="v">${pct(pa)}</div><div class="s">fair odds ${odds(1 / pa)} / ${odds(1 / (1 - pa))}</div></div>`;
+    }
+    const m = TT.matchModel(p, bo, sigma);
+    $("#pOut").innerHTML = `<div class="tiles">${head || `<div class="tile"><div class="k">P(A wins match)</div><div class="v">${pct(m.pMatch)}</div></div>`}
+      <div class="tile"><div class="k">P(A wins a point)</div><div class="v">${p.toFixed(4)}</div><div class="s">game ${pct(m.pGame)}</div></div>
+      <div class="tile"><div class="k">Expected total points</div><div class="v">${m.expectedPoints().toFixed(1)}</div><div class="s">first to 11, win by 2</div></div></div>
+      <div class="table-wrap"><table id="pTable"></table></div>`;
+    const rows = m.fairTable().map((r) => ({ ...r, description: TT.describe(r.market, r.selection, r.line, "Player A", "Player B") }));
+    renderTable($("#pTable"), [
+      { key: "market", label: "Market", nosort: true, html: (r) => esc(MARKETS[r.market]) },
+      { key: "description", label: "Selection", nosort: true },
+      { key: "p_win", label: "Win chance", num: true, nosort: true, html: (r) => pct(r.p_win) },
+      { key: "p_push", label: "Push", num: true, nosort: true, html: (r) => r.p_push ? pct(r.p_push) : "" },
+      { key: "fair_price", label: "Fair odds", num: true, nosort: true, html: (r) => odds(r.fair_price) },
+      { key: "need", label: "Bet at or above (3% edge)", num: true, nosort: true, html: (r) => r.p_win > 0 ? odds(1 + (0.03 + (1 - r.p_win - r.p_push)) / r.p_win) : "–" },
+    ], rows, {});
+  } catch (err) { $("#pOut").innerHTML = `<p class="neg">${esc(err.message)}</p>`; }
+}
+$("#pForm").addEventListener("submit", runPricer);
+
+// ------------------------------------------------------------------ ratings
+function renderRatings() {
+  const rows = S.ratings ? S.ratings.leaderboard(+$("#rMin").value || 0) : [], text = $("#rText").value.trim().toLowerCase();
+  renderTable($("#ratingsTable"), [
+    { key: "rank", label: "#", num: true },
+    { key: "player", label: "Player" },
+    { key: "rating", label: "Rating", num: true, html: (r) => r.rating.toFixed(3) },
+    { key: "sd", label: "± sd", num: true, html: (r) => r.sd.toFixed(3) },
+    { key: "p_vs_avg", label: "P(point) v avg", num: true, html: (r) => pct(r.p_vs_avg, 2) },
+    { key: "matches", label: "Matches", num: true },
+    { key: "win_pct", label: "Win %", num: true, html: (r) => pct(r.win_pct) },
+    { key: "point_pct", label: "Points won", num: true, html: (r) => pct(r.point_pct) },
+  ], rows.map((r, i) => ({ ...r, rank: i + 1 })).filter((r) => !text || r.player.toLowerCase().includes(text)), { sortKey: "rating", empty: "Load a results file to build ratings." });
+}
+$("#rText").addEventListener("input", renderRatings);
+$("#rMin").addEventListener("change", renderRatings);
+
+// ------------------------------------------------------------------ charts
+function niceTicks(lo, hi, n) {
+  const span = hi - lo, s0 = 10 ** Math.floor(Math.log10(span / n)), err = span / n / s0;
+  const step = s0 * (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1), out = [];
+  for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) out.push(+t.toFixed(10));
+  return out;
+}
+function lineChart(el, points) {
+  const W = Math.max(300, el.clientWidth), H = 250, L = 52, R = 12, T = 12, B = 28;
+  if (points.length < 2) { el.innerHTML = '<div class="empty">Not enough bets to chart.</div>'; return; }
+  const xs = points.map((p) => p.x), ys = points.map((p) => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys); const pad = (y1 - y0) * 0.08 || 1; y0 -= pad; y1 += pad;
+  const sx = (x) => L + (x - x0) / (x1 - x0 || 1) * (W - L - R), sy = (y) => T + (y1 - y) / (y1 - y0) * (H - T - B);
+  const grid = niceTicks(y0, y1, 5).map((t) => `<line class="gridline" x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}"/><text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${t}u</text>`).join("");
+  const d = points.map((p, i) => `${i ? "L" : "M"}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join("");
+  const area = `${d}L${sx(x1).toFixed(1)},${sy(0).toFixed(1)}L${sx(x0).toFixed(1)},${sy(0).toFixed(1)}Z`;
+  const last = points[points.length - 1];
+  el.innerHTML = `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative profit by bet number">
+    <g class="axis">${grid}<text x="${W - R}" y="${H - 6}" text-anchor="end">bet number</text></g>
+    <path d="${area}" fill="var(--accent)" fill-opacity=".08"/>
+    <line class="zero" x1="${L}" x2="${W - R}" y1="${sy(0)}" y2="${sy(0)}"/>
+    <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${sx(last.x)}" cy="${sy(last.y)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    <line class="xhair" y1="${T}" y2="${H - B}" stroke="var(--ink-3)" stroke-width="1" visibility="hidden"/>
+    <circle class="xdot" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
+    <rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg><div class="tooltip" hidden></div></div>`;
+  const svg = el.querySelector("svg"), tip = el.querySelector(".tooltip"), hair = svg.querySelector(".xhair"), dot = svg.querySelector(".xdot");
+  const move = (clientX) => {
+    const box = svg.getBoundingClientRect(), k = W / box.width, x = x0 + ((clientX - box.left) * k - L) / (W - L - R) * (x1 - x0);
+    let best = points[0]; for (const p of points) if (Math.abs(p.x - x) < Math.abs(best.x - x)) best = p;
+    const px = sx(best.x), py = sy(best.y);
+    hair.setAttribute("x1", px); hair.setAttribute("x2", px); hair.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("visibility", "visible");
+    tip.innerHTML = `bet ${best.x}<br><b>${units(best.y)}</b><br><span class="muted">${esc(when(best.t))}</span>`; tip.hidden = false;
+    tip.style.left = Math.min(px / k + 12, box.width - tip.offsetWidth - 4) + "px"; tip.style.top = (py / k - 10) + "px";
+  };
+  const hit = svg.querySelector(".hit");
+  hit.addEventListener("pointermove", (ev) => move(ev.clientX));
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; hair.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+}
+function calibChart(el, buckets) {
+  const W = 420, H = 300, L = 44, T = 12, Sz = Math.min(W - L - 12, H - T - 36), sx = (v) => L + v * Sz, sy = (v) => T + (1 - v) * Sz;
+  const grid = [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => `<line class="gridline" x1="${sx(0)}" x2="${sx(1)}" y1="${sy(t)}" y2="${sy(t)}"/>
+    <text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${Math.round(t * 100)}%</text><text x="${sx(t)}" y="${sy(0) + 16}" text-anchor="middle">${Math.round(t * 100)}%</text>`).join("");
+  const dots = buckets.map((b, i) => { const x = sx(b.implied_devigged), y = sy(b.actual), lo = Math.max(0, b.actual - 1.96 * b.se), hi = Math.min(1, b.actual + 1.96 * b.se);
+    return `<g class="cdot" data-i="${i}"><line x1="${x}" x2="${x}" y1="${sy(hi)}" y2="${sy(lo)}" stroke="var(--ink-3)" stroke-width="1"/>
+      <circle cx="${x}" cy="${y}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/><circle cx="${x}" cy="${y}" r="14" fill="transparent"/></g>`; }).join("");
+  el.innerHTML = `<div class="chart" style="max-width:460px"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Market probability against actual win rate">
+    <g class="axis">${grid}<text x="${sx(0.5)}" y="${H - 4}" text-anchor="middle">Market chance (margin removed)</text></g>
+    <line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(1)}" y2="${sy(1)}" stroke="var(--ink-3)" stroke-dasharray="4 4" stroke-width="1"/>${dots}</svg><div class="tooltip" hidden></div></div>`;
+  const tip = el.querySelector(".tooltip"), box0 = el.querySelector(".chart");
+  el.querySelectorAll(".cdot").forEach((g) => {
+    g.addEventListener("pointerenter", () => {
+      const b = buckets[+g.dataset.i]; tip.innerHTML = `<b>${esc(b.bucket)}</b><br>market ${pct(b.implied_devigged)} · actual ${pct(b.actual)}<br>${b.n} sides`; tip.hidden = false;
+      const c = g.querySelector("circle").getBoundingClientRect(), box = box0.getBoundingClientRect();
+      tip.style.left = Math.min(c.right - box.left + 6, box.width - tip.offsetWidth - 4) + "px"; tip.style.top = (c.top - box.top - 8) + "px";
+    });
+    g.addEventListener("pointerleave", () => { tip.hidden = true; });
+  });
+}
+
+// ------------------------------------------------------------------ backtest
+$("#btGo").onclick = async () => {
+  const btn = $("#btGo"); btn.disabled = true; btn.textContent = "Running…";
+  $("#btOut").innerHTML = '<div class="sub">Replaying matches…</div><div class="progress"><div id="btBar"></div></div>';
+  try {
+    const bt = await TT.runBacktest(S.results, S.quotes, S.config, {}, { onProgress: (f) => { const bar = $("#btBar"); if (bar) bar.style.width = (f * 100).toFixed(0) + "%"; } });
+    S.backtest = bt; renderBacktest(bt);
+  } catch (err) { $("#btOut").innerHTML = `<p class="neg">${esc(err.message)}</p>`; }
+  btn.disabled = false; btn.textContent = "Run backtest";
+};
+function renderBacktest(bt) {
+  const p = bt.prediction, b = bt.betting, sig = b.n && Math.abs(b.roi) >= 2 * b.roi_se;
+  const tiles = b.n ? `<div class="tiles">
+    <div class="tile"><div class="k">Bets</div><div class="v">${b.n.toLocaleString()}</div><div class="s">${units(b.staked)} staked · avg odds ${b.avg_price.toFixed(2)}</div></div>
+    <div class="tile"><div class="k">Return on stake</div><div class="v ${sig ? (b.roi > 0 ? "pos" : "neg") : ""}">${pct(b.roi, 2)}</div><div class="s">± ${pct(b.roi_se, 2)} s.e.${sig ? "" : " · could be luck"}</div></div>
+    <div class="tile"><div class="k">Closing-line value</div><div class="v ${b.avg_clv > 0 ? "pos" : "neg"}">${pct(b.avg_clv, 2)}</div><div class="s">${pct(b.pct_positive_clv)} of bets beat the close</div></div>
+    <div class="tile"><div class="k">Claimed edge</div><div class="v">${pct(b.avg_edge, 2)}</div><div class="s">the gap to CLV is model overconfidence</div></div>
+    <div class="tile"><div class="k">Max drawdown</div><div class="v">${units(b.max_drawdown)}</div><div class="s">of a ${bt.bankroll}u bankroll</div></div></div>`
+    : '<div class="empty">No bets were placed. Backtesting needs odds with open and close snapshots whose match_id matches the results.</div>';
+  const breakdown = (obj, label) => `<div class="table-wrap"><table><thead><tr><th scope="col">${label}</th><th class="num" scope="col">Bets</th><th class="num" scope="col">Staked</th><th class="num" scope="col">Profit</th><th class="num" scope="col">Return</th><th class="num" scope="col">CLV</th></tr></thead><tbody>` +
+    Object.entries(obj).sort().map(([k, v]) => `<tr><td>${esc(MARKETS[k] || k)}</td><td class="num">${v.n}</td><td class="num">${units(v.staked)}</td><td class="num ${v.profit >= 0 ? "pos" : "neg"}">${units(v.profit)}</td><td class="num">${pct(v.roi, 2)}</td><td class="num ${v.avg_clv > 0 ? "pos" : ""}">${pct(v.avg_clv, 2)}</td></tr>`).join("") + "</tbody></table></div>";
+  const predTable = p.n ? `<div class="table-wrap"><table><thead><tr><th scope="col">Model</th><th class="num" scope="col">Log loss</th><th class="num" scope="col">Brier</th><th class="num" scope="col">Picked winner</th></tr></thead><tbody>` +
+    [["market", "Closing market"], ["blend", "Market + ratings"], ["ratings", "Point ratings"], ["elo", "Win/loss Elo"]].map(([k, l]) =>
+      `<tr><td>${l}</td><td class="num">${p[k].log_loss.toFixed(4)}</td><td class="num">${p[k].brier.toFixed(4)}</td><td class="num">${pct(p[k].accuracy)}</td></tr>`).join("") +
+    `</tbody></table></div><p class="hint" style="margin-top:8px">${p.n.toLocaleString()} matches where both players had history. Lower log loss is better; beating the closing market is rare.</p>`
+    : '<div class="empty">Needs results with matching closing odds.</div>';
+  const cb = bt.calibration;
+  const calibTableHtml = `<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th scope="col">Bucket</th><th class="num" scope="col">Sides</th><th class="num" scope="col">Proportional</th><th class="num" scope="col">Margin removed</th><th class="num" scope="col">Actual</th><th class="num" scope="col">± s.e.</th></tr></thead><tbody>` +
+    cb.map((x) => `<tr><td>${esc(x.bucket)}</td><td class="num">${x.n}</td><td class="num">${pct(x.implied_multiplicative)}</td><td class="num">${pct(x.implied_devigged)}</td><td class="num">${pct(x.actual)}</td><td class="num">${pct(x.se)}</td></tr>`).join("") + "</tbody></table></div>";
+  $("#btOut").innerHTML = tiles + (b.n ? '<h3>Cumulative profit</h3><div id="curve"></div>' : "") +
+    `<div class="grid2" style="margin-top:4px"><div><h3>Prediction quality</h3>${predTable}</div><div><h3>Market calibration (favourite-longshot check)</h3>${cb.length ? '<div id="calib"></div>' + calibTableHtml : '<div class="empty">No closing odds.</div>'}</div></div>` +
+    (b.n ? `<div class="grid2"><div><h3>By market</h3>${breakdown(b.by_market, "Market")}</div><div><h3>By book</h3>${breakdown(b.by_book, "Book")}</div></div>` : "");
+  if (b.n) lineChart($("#curve"), b.curve.map((c) => ({ x: c.i + 1, y: c.profit, t: c.t })));
+  if (cb.length) calibChart($("#calib"), cb);
+}
+
+// ------------------------------------------------------------------ data + settings
+const TPL_RESULTS = "match_id,start_time,tournament,player_a,player_b,score,best_of\nm1,2026-11-12T09:30,Czech Liga Pro,Player One,Player Two,11-7 9-11 11-5 11-8,5\n";
+const TPL_ODDS = "match_id,start_time,tournament,player_a,player_b,book,market,selection,line,price,snapshot\n" +
+  ["ML,A,,1.72", "ML,B,,2.05", "GAME_HCP,A,-1.5,2.30", "GAME_HCP,B,1.5,1.55", "GAMES_TOTAL,OVER,3.5,1.40", "GAMES_TOTAL,UNDER,3.5,2.75"]
+    .map((x) => `m2,2026-11-13T10:00,TT Cup,Player Three,Player Four,BookA,${x},current`).join("\n") + "\n";
+$("#tplResults").textContent = TPL_RESULTS; $("#tplOdds").textContent = TPL_ODDS;
+$("#copyTpl").onclick = async () => {
+  try { await navigator.clipboard.writeText(TPL_ODDS); $("#tplMsg").textContent = "Copied."; }
+  catch (e) { const r = document.createRange(); r.selectNodeContents($("#tplOdds")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("#tplMsg").textContent = "Selected. Press Ctrl+C or ⌘C to copy."; }
+};
+
+async function readFile(file, kind) {
+  const text = await file.text();
+  if (!kind) kind = /(^|,)\s*score\s*(,|$)/i.test(text.split(/\r?\n/)[0]) ? "results" : "odds";
+  $("#dataMsg").textContent = `Reading ${file.name}…`;
+  if (S.synthetic) { S.results = []; S.quotes = []; S.errors = []; S.synthetic = false; }
+  let errs;
+  if (kind === "results") { [S.results, errs] = TT.loadResults(text); S.errors = S.errors.filter((e) => !e.startsWith("results")).concat(errs); }
+  else { [S.quotes, errs] = TT.loadOdds(text); S.errors = S.errors.filter((e) => !e.startsWith("odds")).concat(errs); }
+  S.source = [S.results.length ? "your results" : "", S.quotes.length ? "your odds" : ""].filter(Boolean).join(" + ") || "no data";
+  $("#dataMsg").textContent = `Loaded ${file.name}: ${kind === "results" ? S.results.length + " results" : S.quotes.length + " prices"}${errs.length ? `, ${errs.length} rows skipped (listed below)` : ""}.`;
+  await refresh(kind === "results");
+}
+$("#upResults").onchange = (e) => e.target.files[0] && readFile(e.target.files[0], "results");
+$("#upOdds").onchange = (e) => e.target.files[0] && readFile(e.target.files[0], "odds");
+const drop = $("#drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", async (e) => { e.preventDefault(); drop.classList.remove("over"); for (const f of e.dataTransfer.files) await readFile(f, null); });
+$("#demoBtn").onclick = async () => { $("#dataMsg").textContent = ""; await loadDemo(); $("#dataMsg").textContent = "Demo board reloaded."; };
+$("#clearBtn").onclick = async () => { S.results = []; S.quotes = []; S.errors = []; S.synthetic = false; S.source = "no data"; S.sigmaFit = null; await refresh(); $("#dataMsg").textContent = "Cleared. Load a results or odds file to start."; };
+function renderErrors() { $("#errors").innerHTML = S.errors.slice(0, 50).map(esc).join("<br>") + (S.errors.length > 50 ? `<br>… ${S.errors.length - 50} more` : ""); }
+
+const SETTINGS = [
+  ["min_edge", "Min edge (0.03 = 3%)", "number", 0.005], ["max_edge", "Ignore edges above", "number", 0.01],
+  ["min_odds", "Min odds", "number", 0.05], ["max_odds", "Max odds", "number", 0.5],
+  ["model_weight", "Ratings weight (0 to 1)", "number", 0.05], ["min_model_matches", "Matches before ratings count", "number", 1],
+  ["derivative_consensus_weight", "Derivatives: weight on other books", "number", 0.05],
+  ["devig_method", "Margin removal", "select", TT.DEVIG_METHODS], ["sharp_books", "Sharp books (comma list)", "text"],
+  ["sharp_weight", "Sharp book weight", "number", 0.5], ["min_books", "Other books needed", "number", 1],
+  ["kelly_multiplier", "Kelly fraction", "number", 0.05], ["max_stake", "Max stake (share of bankroll)", "number", 0.005],
+  ["game_sigma", "Game sigma (blank = fit from results)", "number", 0.01], ["bet_into_sharp", "List bets at sharp books", "select", ["no", "yes"]],
+];
+function renderSettings() {
+  const c = S.config;
+  $("#settings").innerHTML = SETTINGS.map(([k, label, type, extra]) => {
+    let v = c[k]; if (Array.isArray(v)) v = v.join(", "); if (k === "bet_into_sharp") v = v ? "yes" : "no";
+    if (k === "game_sigma" && S.autoSigma) v = "";
+    const input = type === "select" ? `<select id="cfg-${k}" data-k="${k}">${extra.map((o) => `<option ${String(v) === o ? "selected" : ""}>${o}</option>`).join("")}</select>`
+      : `<input id="cfg-${k}" data-k="${k}" type="${type}" ${type === "number" ? `step="${extra}"` : ""} value="${esc(v)}" ${k === "game_sigma" ? `placeholder="fitted: ${esc(c.game_sigma)}"` : ""}>`;
+    return `<label for="cfg-${k}">${esc(label)}${input}</label>`;
+  }).join("");
+  const fit = S.sigmaFit;
+  $("#cfgMsg").textContent = fit && fit.matches ? `Sigma ${fit.sigma} fitted from ${fit.matches.toLocaleString()} matches.` : "";
+}
+$("#saveCfg").onclick = async () => {
+  const next = { ...S.config };
+  for (const el of document.querySelectorAll("#settings [data-k]")) {
+    const k = el.dataset.k, v = el.value.trim();
+    if (k === "game_sigma") { S.autoSigma = v === ""; if (v !== "") next.game_sigma = Math.max(0, +v); continue; }
+    if (k === "bet_into_sharp") next[k] = v === "yes";
+    else if (k === "devig_method") next[k] = v;
+    else if (k === "sharp_books") next[k] = v.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    else { const n = +v; if (v === "" || !isFinite(n)) { $("#cfgMsg").innerHTML = `<span class="neg">${esc(k)} needs a number.</span>`; return; } next[k] = n; }
+  }
+  S.config = next; store.set("config", next); store.set("autoSigma", S.autoSigma);
+  await refresh(); $("#cfgMsg").textContent = "Applied.";
+};
+$("#resetCfg").onclick = async () => { S.config = { ...TT.SCAN_DEFAULTS }; S.autoSigma = true; store.set("config", null); store.set("autoSigma", true); await refresh(); $("#cfgMsg").textContent = "Defaults restored."; };
+
+// ------------------------------------------------------------------ file saves (downloads capability)
+function toCSV(rows, cols) {
+  const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  return cols.join(",") + "\n" + rows.map((r) => cols.map((c) => cell(r[c])).join(",")).join("\n") + "\n";
+}
+(async () => {
+  const dl = window.claude?.use ? await window.claude.use("downloads").catch(() => null) : null;
+  if (!dl) return;
+  const save = async (filename, data, msgEl) => {
+    try { await dl.save({ filename, data }); if (msgEl) msgEl.textContent = "Saved."; }
+    catch (e) { if (msgEl && e?.code !== "declined") msgEl.textContent = e?.code === "rate_limited" ? "A save prompt is already open." : "Saving isn't available here."; }
+  };
+  $("#exportBets").hidden = false; $("#saveTpl").hidden = false;
+  $("#exportBets").onclick = () => {
+    const rows = filteredBets().map((o) => ({ ...o, start_time: o.start_time ? new Date(o.start_time).toISOString() : "", flags: o.flags.filter((f) => f !== "opportunity").join(" "),
+      edge: o.edge.toFixed(4), fair_price: o.fair_price.toFixed(3), stake: o.stake.toFixed(4), p_win: o.p_win.toFixed(4) }));
+    save("tt-edge-value-bets.csv", toCSV(rows, ["start_time", "tournament", "player_a", "player_b", "book", "market", "selection", "line", "description", "price", "fair_price", "p_win", "edge", "stake", "flags"]), null);
+  };
+  $("#saveTpl").onclick = async () => { await save("odds-template.csv", TPL_ODDS, $("#tplMsg")); await save("results-template.csv", TPL_RESULTS, $("#tplMsg")); };
+})();
+
+// ------------------------------------------------------------------ start
+showTab(store.get("tab") || "bets");
+$("#pSig").value = 0.1;
+runPricer();
+loadDemo().then(() => { $("#pSig").value = S.config.game_sigma; runPricer(); });
+</script>

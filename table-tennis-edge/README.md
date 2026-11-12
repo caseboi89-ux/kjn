@@ -25,6 +25,14 @@ integrity risks, data providers): [docs/RESEARCH.md](docs/RESEARCH.md).
 > bookmakers so the pipeline can be tried end to end. To find real
 > mispriced lines, load real odds (see *Getting real data*).
 
+## Browser version (no install)
+
+`web/tt-edge-standalone.html` is the whole app in one file: open it in any
+browser, or use the published claude.ai artifact built from the same source.
+Everything runs locally in the page (engine port in `web/engine.js`, UI in
+`web/page.html`; rebuild with `python3 web/build.py`). It loads a fictional
+demo board on start; load your own CSV files on the *Data & settings* tab.
+
 ## Quick start
 
 ```bash
