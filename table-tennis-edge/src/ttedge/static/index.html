@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TT Edge</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f5f2;
+  --surface-1: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #e2e0da;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7974;
+  --accent: #2a78d6;
+  --accent-ink: #ffffff;
+  --series-1: #2a78d6;
+  --good: #0a7d0a;
+  --good-bg: #e3f4e3;
+  --warn-ink: #8a5a00;
+  --warn-bg: #fdf1d6;
+  --bad: #b42f2f;
+  --bad-bg: #fbe5e5;
+  --grid: #e8e6e1;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface-1: #1a1a19;
+    --surface-2: #232321;
+    --border: #33332f;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --accent: #3987e5;
+    --series-1: #3987e5;
+    --good: #4cc44c;
+    --good-bg: #16301a;
+    --warn-ink: #f2c25c;
+    --warn-bg: #3a2e12;
+    --bad: #ee7a7a;
+    --bad-bg: #3a1c1c;
+    --grid: #2b2b28;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211;
+  --surface-1: #1a1a19;
+  --surface-2: #232321;
+  --border: #33332f;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8e86;
+  --accent: #3987e5;
+  --series-1: #3987e5;
+  --good: #4cc44c;
+  --good-bg: #16301a;
+  --warn-ink: #f2c25c;
+  --warn-bg: #3a2e12;
+  --bad: #ee7a7a;
+  --bad-bg: #3a1c1c;
+  --grid: #2b2b28;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 18px 0 10px; }
+header h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+header h1 span { color: var(--text-muted); font-weight: 500; }
+.status { display: flex; flex-wrap: wrap; gap: 8px; color: var(--text-secondary); font-size: 13px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border); white-space: nowrap; }
+.badge.warn { background: var(--warn-bg); color: var(--warn-ink); border-color: transparent; }
+.spacer { flex: 1; }
+button, select, input { font: inherit; color: inherit; }
+a { color: var(--accent); }
+button { cursor: pointer; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1);
+  padding: 6px 12px; }
+button:hover { border-color: var(--text-muted); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+button:disabled { opacity: .55; cursor: progress; }
+input, select { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; }
+input[type=number] { width: 90px; }
+nav { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+nav button { border: 0; border-radius: 0; background: none; padding: 10px 14px; color: var(--text-secondary);
+  border-bottom: 2px solid transparent; white-space: nowrap; }
+nav button[aria-selected=true] { color: var(--text-primary); border-bottom-color: var(--accent); font-weight: 600; }
+.panel { display: none; }
+.panel.active { display: block; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow);
+  padding: 16px; margin-bottom: 16px; }
+.card h2 { font-size: 15px; margin: 0 0 4px; }
+.card h3 { font-size: 13px; margin: 14px 0 6px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+.hint { color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; max-width: 80ch; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin-bottom: 12px; }
+.filters label, .form label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--text-secondary); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-size: 12px; font-weight: 600; color: var(--text-secondary); background: var(--surface-2); position: sticky; top: 0; }
+th[data-sort] { cursor: pointer; user-select: none; }
+th[data-sort]:hover { color: var(--text-primary); }
+tr:last-child td { border-bottom: 0; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover td { background: var(--surface-2); }
+td.num, th.num { text-align: right; }
+.pos { color: var(--good); font-weight: 600; }
+.neg { color: var(--bad); }
+.muted { color: var(--text-muted); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin: 1px 3px 1px 0;
+  background: var(--surface-2); color: var(--text-secondary); border: 1px solid var(--border); }
+.chip.good { background: var(--good-bg); color: var(--good); border-color: transparent; }
+.chip.warn { background: var(--warn-bg); color: var(--warn-ink); border-color: transparent; }
+.chip.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.tile .k { font-size: 12px; color: var(--text-secondary); }
+.tile .v { font-size: 22px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+.form { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.form input, .form select { width: 100%; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.drop { border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px; }
+.errors { max-height: 200px; overflow: auto; font: 12px/1.5 ui-monospace, monospace; color: var(--bad); }
+.empty { padding: 28px; text-align: center; color: var(--text-muted); }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .axis text { fill: var(--text-muted); font-size: 11px; }
+.chart .gridline { stroke: var(--grid); stroke-width: 1; }
+.chart .zero { stroke: var(--text-muted); stroke-width: 1; }
+.tooltip { position: absolute; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 9px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.15); white-space: nowrap;
+  display: none; z-index: 5; }
+dialog { border: 1px solid var(--border); border-radius: 14px; padding: 0; background: var(--surface-1); color: var(--text-primary);
+  width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+.dlg-head { display: flex; align-items: start; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface-1); z-index: 2; }
+.dlg-body { padding: 16px; }
+footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; max-width: 90ch; }
+.loading { color: var(--text-muted); padding: 16px; }
+@media (max-width: 640px) {
+  .grid2 { grid-template-columns: 1fr; }
+  header h1 { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>TT Edge <span>table tennis line scanner</span></h1>
+  <div class="status" id="status"></div>
+  <div class="spacer"></div>
+  <button id="themeBtn" title="Toggle light/dark">Theme</button>
+</header>
+
+<nav role="tablist" id="tabs">
+  <button role="tab" data-tab="bets" aria-selected="true">Value bets</button>
+  <button role="tab" data-tab="arbs">Arbitrage</button>
+  <button role="tab" data-tab="matches">Matches</button>
+  <button role="tab" data-tab="pricer">Pricer</button>
+  <button role="tab" data-tab="ratings">Ratings</button>
+  <button role="tab" data-tab="backtest">Backtest</button>
+  <button role="tab" data-tab="data">Data &amp; settings</button>
+</nav>
+
+<section class="panel active" id="panel-bets">
+  <div class="card">
+    <h2>Mispriced lines</h2>
+    <p class="hint">Prices that beat a fair value built from the other books' margin-free prices, the point model and
+      (when players have enough history) the ratings. Click a row for the full match board.
+      <b>Edge</b> = expected profit per unit staked; <b>Stake</b> = capped fractional Kelly, as a share of bankroll.</p>
+    <div class="filters">
+      <label>Min edge <input type="number" id="fEdge" step="0.5" value="3"></label>
+      <label>Market <select id="fMarket"><option value="">All markets</option></select></label>
+      <label>Book <select id="fBook"><option value="">All books</option></select></label>
+      <label>Player / tournament <input type="search" id="fText" placeholder="Search"></label>
+      <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="fConsistent"> Only derivative inconsistencies</label>
+    </div>
+    <div class="table-wrap"><table id="betsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-arbs">
+  <div class="card">
+    <h2>Cross-book arbitrage</h2>
+    <p class="hint">Best prices across books whose implied probabilities sum to under 100%. Stake the shares shown to lock in
+      the return whatever happens. Arbs between soft books are often stale lines that get voided or cut; check limits
+      and void rules (retirements, walkovers) before staking.</p>
+    <div class="table-wrap"><table id="arbsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-matches">
+  <div class="card">
+    <h2>Matches on the board</h2>
+    <p class="hint">Fair match price from the blended point probability. Click a match to see every book's price for every market against fair.</p>
+    <div class="filters"><label>Search <input type="search" id="mText" placeholder="Player or tournament"></label></div>
+    <div class="table-wrap"><table id="matchesTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-pricer">
+  <div class="card">
+    <h2>Match pricer</h2>
+    <p class="hint">Enter a match-winner price pair (decimal, +American or fractional). The margin is removed, the fair price is
+      converted to a point-win probability, and every derivative market is priced from it. Or enter the point probability directly.</p>
+    <div class="filters">
+      <label>Player A price <input id="pA" value="1.62" size="7"></label>
+      <label>Player B price <input id="pB" value="2.35" size="7"></label>
+      <label>or P(A wins a point) <input id="pP" placeholder="e.g. 0.53" size="9"></label>
+      <label>Format <select id="pBo"><option value="5">Best of 5</option><option value="7">Best of 7</option></select></label>
+      <label>Game sigma <input type="number" id="pSig" step="0.05" min="0" value="0"></label>
+      <button class="primary" id="pGo">Price it</button>
+    </div>
+    <div id="pOut"></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-ratings">
+  <div class="card">
+    <h2>Player ratings</h2>
+    <p class="hint">Point-based ratings learned from every point in the results file. <b>P(point) v avg</b> is the chance of winning a
+      point against an average player; small differences matter: 52% per point is about 64% per best-of-5 match.</p>
+    <div class="filters">
+      <label>Search <input type="search" id="rText" placeholder="Player"></label>
+      <label>Min matches <input type="number" id="rMin" value="5" min="0"></label>
+    </div>
+    <div class="table-wrap"><table id="ratingsTable"></table></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-backtest">
+  <div class="card">
+    <div class="row"><h2 style="margin:0">Walk-forward backtest</h2><div class="spacer"></div>
+      <button class="primary" id="btGo">Run backtest</button></div>
+    <p class="hint" style="margin-top:8px">Replays past matches in time order: ratings only know earlier results, bets use the opening
+      prices, and closing prices measure closing-line value (CLV). CLV is the faster and more reliable signal than ROI.</p>
+    <div id="btOut"><div class="empty">Run the backtest to see results (takes a few seconds per thousand matches).</div></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-data">
+  <div class="grid2">
+    <div class="card">
+      <h2>Load data</h2>
+      <p class="hint">CSV files stay on this machine. Results train the ratings; odds are scanned (rows with
+        <code>snapshot</code> = <code>current</code>, else <code>close</code>).</p>
+      <div class="drop">
+        <div class="row" style="margin-bottom:10px"><b style="min-width:70px">Results</b>
+          <input type="file" id="upResults" accept=".csv,text/csv">
+          <a href="/api/sample?kind=results">template</a></div>
+        <div class="row"><b style="min-width:70px">Odds</b>
+          <input type="file" id="upOdds" accept=".csv,text/csv">
+          <a href="/api/sample?kind=odds">template</a></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="demoBtn">Load synthetic demo</button>
+        <button id="clearBtn">Clear all data</button>
+      </div>
+      <div id="dataMsg" class="hint" style="margin-top:10px"></div>
+      <div id="errors" class="errors"></div>
+    </div>
+    <div class="card">
+      <h2>Settings</h2>
+      <p class="hint">Changes re-run the scan immediately.</p>
+      <div class="form" id="settings"></div>
+      <div class="row" style="margin-top:12px"><button class="primary" id="saveCfg">Apply</button><span id="cfgMsg" class="muted"></span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Prices are estimates, not guarantees. A positive edge on paper still loses often, books limit accounts that win, and
+  several high-volume table tennis leagues have had match-fixing investigations. Bet only where it is legal for you,
+  only what you can afford to lose. Help: begambleaware.org · 1-800-GAMBLER (US).
+</footer>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg-head"><div id="dlgTitle" style="flex:1"></div><button id="dlgClose">Close</button></div>
+  <div class="dlg-body" id="dlgBody"></div>
+</dialog>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = (x, d = 1) => x == null ? "–" : (x * 100).toFixed(d) + "%";
+const odds = (x) => x == null || !isFinite(x) ? "–" : Number(x).toFixed(2);
+const when = (t) => t ? t.slice(5, 16).replace("T", " ") : "";
+const MARKETS = {ML:"Match winner", GAME_HCP:"Game handicap", GAMES_TOTAL:"Total games", CORRECT_SCORE:"Correct score",
+  POINTS_TOTAL:"Total points", POINTS_HCP:"Point handicap", G1_ML:"Game 1 winner", G1_POINTS_TOTAL:"Game 1 points"};
+const FLAGS = {
+  beats_consensus: ["good", "consensus", "Beats the other books' margin-free consensus on its own"],
+  inconsistent_with_own_ml: ["good", "inconsistent", "This derivative disagrees with the same book's own match-winner price"],
+  thin_consensus: ["warn", "thin", "Only one other book quotes this market"],
+  ratings_disagree_with_market: ["warn", "ratings differ", "Ratings and market disagree by over 15 points on the match"],
+  suspicious_edge: ["bad", "too good", "Edge above the sanity cap: likely a stale line or data error"],
+  sharp_book_vs_soft_consensus: ["warn", "sharp book", "A sharp book judged only by softer books; not flagged as a bet by default"],
+  ratings_only: ["warn", "ratings only", "No market reference; fair value comes from ratings alone"],
+  consensus_only: ["", "consensus only", "No point model available; fair value is the consensus only"],
+};
+const chips = (flags) => flags.filter(f => f !== "opportunity").map(f => {
+  const [cls, label, tip] = FLAGS[f] || ["", f, f];
+  return `<span class="chip ${cls}" title="${esc(tip)}">${esc(label)}</span>`;
+}).join("");
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)};
+  const r = await fetch(path, opt);
+  const data = await r.json().catch(() => ({error: r.statusText}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+
+// ------------------------------------------------------------------ theme
+(function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem("ttedge-theme"); } catch (e) {}
+  if (saved) document.documentElement.dataset.theme = saved;
+  $("#themeBtn").onclick = () => {
+    const cur = document.documentElement.dataset.theme ||
+      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("ttedge-theme", next); } catch (e) {}
+  };
+})();
+
+// ------------------------------------------------------------------ tabs
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + b.dataset.tab));
+  if (b.dataset.tab === "ratings") loadRatings();
+});
+
+// ------------------------------------------------------------------ sortable table helper
+function renderTable(el, cols, rows, opts = {}) {
+  const st = el._sort || (el._sort = {key: opts.sortKey, dir: opts.sortDir || -1});
+  if (st.key) {
+    const col = cols.find(c => c.key === st.key);
+    const val = col && col.sortVal ? col.sortVal : (r => r[st.key]);
+    rows = rows.slice().sort((a, b) => {
+      const x = val(a), y = val(b);
+      if (x == null) return 1; if (y == null) return -1;
+      return (x > y ? 1 : x < y ? -1 : 0) * st.dir;
+    });
+  }
+  const limit = opts.limit || 400;
+  const head = "<thead><tr>" + cols.map(c =>
+    `<th class="${c.num ? "num" : ""}" ${c.nosort ? "" : `data-sort="${c.key}"`}>${esc(c.label)}${st.key === c.key ? (st.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("") + "</tr></thead>";
+  const body = rows.length ? rows.slice(0, limit).map((r, i) =>
+    `<tr class="${opts.onRow ? "click" : ""}" data-i="${i}">` + cols.map(c =>
+      `<td class="${c.num ? "num" : ""} ${c.cls ? c.cls(r) : ""}">${c.html ? c.html(r) : esc(r[c.key])}</td>`).join("") + "</tr>").join("")
+    : `<tr><td colspan="${cols.length}" class="empty">${esc(opts.empty || "Nothing to show")}</td></tr>`;
+  const more = rows.length > limit ? `<tr><td colspan="${cols.length}" class="muted">${rows.length - limit} more rows not shown; narrow the filters.</td></tr>` : "";
+  el.innerHTML = head + "<tbody>" + body + more + "</tbody>";
+  el.querySelectorAll("th[data-sort]").forEach(th => th.onclick = () => {
+    st.dir = st.key === th.dataset.sort ? -st.dir : -1; st.key = th.dataset.sort; renderTable(el, cols, rows, opts);
+  });
+  if (opts.onRow) el.querySelectorAll("tbody tr.click").forEach(tr => tr.onclick = () => opts.onRow(rows.slice(0, limit)[+tr.dataset.i]));
+}
+
+// ------------------------------------------------------------------ state + scan
+let STATE = null, SCAN = null;
+
+function renderStatus() {
+  const s = STATE; if (!s) return;
+  const synthetic = /synthetic/i.test(s.source);
+  $("#status").innerHTML = [
+    `<span class="badge ${synthetic ? "warn" : ""}" title="${esc(s.source)}">${synthetic ? "Demo data, not real prices" : esc(s.source)}</span>`,
+    `<span class="badge">${s.events} matches · ${s.quotes.toLocaleString()} prices</span>`,
+    `<span class="badge">${s.results.toLocaleString()} results</span>`,
+    `<span class="badge">${s.opportunities} value bets · ${s.arbitrages} arbs</span>`,
+    s.error_count ? `<span class="badge warn">${s.error_count} bad rows</span>` : "",
+  ].join("");
+}
+
+async function refresh() {
+  [STATE, SCAN] = await Promise.all([api("/api/state"), api("/api/scan")]);
+  renderStatus();
+  fillFilters();
+  renderBets(); renderArbs(); renderMatches(); renderSettings(); renderErrors();
+  if ($("#panel-ratings").classList.contains("active")) loadRatings();
+}
+
+function fillFilters() {
+  const m = $("#fMarket"), b = $("#fBook");
+  const mv = m.value, bv = b.value;
+  m.innerHTML = '<option value="">All markets</option>' + Object.entries(MARKETS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+  b.innerHTML = '<option value="">All books</option>' + STATE.books.map(x => `<option>${esc(x)}</option>`).join("");
+  m.value = mv; b.value = STATE.books.includes(bv) ? bv : "";
+  $("#fEdge").value = $("#fEdge").dataset.touched ? $("#fEdge").value : (STATE.config.min_edge * 100).toFixed(1);
+}
+
+function renderBets() {
+  const minEdge = parseFloat($("#fEdge").value || "0") / 100;
+  const mkt = $("#fMarket").value, book = $("#fBook").value, text = $("#fText").value.trim().toLowerCase();
+  const onlyInc = $("#fConsistent").checked;
+  const rows = SCAN.opportunities.filter(o => o.edge >= minEdge && (!mkt || o.market === mkt) && (!book || o.book === book)
+    && (!onlyInc || o.flags.includes("inconsistent_with_own_ml"))
+    && (!text || `${o.player_a} ${o.player_b} ${o.tournament}`.toLowerCase().includes(text)));
+  renderTable($("#betsTable"), [
+    {key: "start_time", label: "Start", html: r => esc(when(r.start_time))},
+    {key: "player_a", label: "Match", html: r => `${esc(r.player_a)} <span class="muted">v</span> ${esc(r.player_b)}<div class="muted" style="font-size:12px">${esc(r.tournament)}</div>`},
+    {key: "description", label: "Bet", html: r => `${esc(r.description)}<div class="muted" style="font-size:12px">${esc(MARKETS[r.market])}</div>`},
+    {key: "book", label: "Book"},
+    {key: "price", label: "Price", num: true, html: r => `<b>${odds(r.price)}</b>`},
+    {key: "fair_price", label: "Fair", num: true, html: r => odds(r.fair_price)},
+    {key: "edge", label: "Edge", num: true, cls: () => "pos", html: r => pct(r.edge)},
+    {key: "stake", label: "Stake", num: true, html: r => pct(r.stake, 2)},
+    {key: "consensus_books", label: "Other books", num: true},
+    {key: "flags", label: "Why", nosort: true, html: r => chips(r.flags)},
+  ], rows, {sortKey: "edge", onRow: r => openEvent(r.match_id),
+    empty: STATE.quotes ? "No prices beat fair value at this edge. Lower the minimum edge or load more books." : "Load odds on the Data tab."});
+}
+
+function renderArbs() {
+  renderTable($("#arbsTable"), [
+    {key: "player_a", label: "Match", html: r => `${esc(r.player_a)} <span class="muted">v</span> ${esc(r.player_b)}`},
+    {key: "market", label: "Market", html: r => esc(MARKETS[r.market]) + (r.line != null ? ` <span class="muted">${esc(r.line)}</span>` : "")},
+    {key: "legs", label: "Legs (stake share)", nosort: true, html: r => r.legs.map(l =>
+      `<div>${esc(l.description)} @ <b>${odds(l.price)}</b> ${esc(l.book)} <span class="muted">(${pct(l.stake_share, 1)})</span></div>`).join("")},
+    {key: "margin", label: "Locked return", num: true, cls: () => "pos", html: r => pct(r.margin, 2)},
+  ], SCAN.arbitrages, {sortKey: "margin", onRow: r => openEvent(r.match_id), empty: "No arbitrage on the current board."});
+}
+
+function renderMatches() {
+  const text = $("#mText").value.trim().toLowerCase();
+  const nOpp = {};
+  SCAN.opportunities.forEach(o => nOpp[o.match_id] = (nOpp[o.match_id] || 0) + 1);
+  const rows = SCAN.events.filter(e => !text || `${e.player_a} ${e.player_b} ${e.tournament}`.toLowerCase().includes(text))
+    .map(e => ({...e, n_opp: nOpp[e.match_id] || 0}));
+  renderTable($("#matchesTable"), [
+    {key: "start_time", label: "Start", html: r => esc(when(r.start_time))},
+    {key: "tournament", label: "Tournament"},
+    {key: "player_a", label: "Player A"},
+    {key: "player_b", label: "Player B"},
+    {key: "p_match", label: "Fair P(A)", num: true, html: r => pct(r.p_match)},
+    {key: "fair_a", label: "Fair A / B", num: true, nosort: true, html: r => r.p_match ? `${odds(1 / r.p_match)} / ${odds(1 / (1 - r.p_match))}` : "–"},
+    {key: "p_point", label: "P(point)", num: true, html: r => r.p_point == null ? "–" : r.p_point.toFixed(4)},
+    {key: "p_point_rating", label: "Ratings P(point)", num: true, html: r => r.p_point_rating == null ? '<span class="muted">–</span>' : r.p_point_rating.toFixed(4)},
+    {key: "books", label: "Books", num: true, sortVal: r => r.books.length, html: r => r.books.length},
+    {key: "n_opp", label: "Value bets", num: true, html: r => r.n_opp ? `<b>${r.n_opp}</b>` : '<span class="muted">0</span>'},
+  ], rows, {sortKey: "start_time", sortDir: 1, onRow: r => openEvent(r.match_id), empty: "No matches loaded."});
+}
+
+async function openEvent(id) {
+  const dlg = $("#dlg");
+  $("#dlgTitle").innerHTML = '<span class="loading">Loading…</span>'; $("#dlgBody").innerHTML = "";
+  if (!dlg.open) dlg.showModal();
+  const d = await api("/api/event?id=" + encodeURIComponent(id));
+  const e = d.event;
+  $("#dlgTitle").innerHTML = `<h2 style="margin:0;font-size:17px">${esc(e.player_a)} <span class="muted">v</span> ${esc(e.player_b)}</h2>
+    <div class="muted">${esc(e.tournament)} · ${esc(when(e.start_time))} · best of ${e.best_of} ·
+    P(point) ${e.p_point == null ? "–" : e.p_point.toFixed(4)}
+    (market ${e.p_point_market == null ? "–" : e.p_point_market.toFixed(4)}, ratings ${e.p_point_rating == null ? "–" : e.p_point_rating.toFixed(4)})</div>`;
+  const books = e.books;
+  const key = r => `${r.market}|${r.selection}|${r.line}`;
+  const fairRows = e.fair.map(f => ({...f, key: key(f)}));
+  const byKey = {};
+  d.evaluations.forEach(v => { (byKey[key(v)] = byKey[key(v)] || {})[v.book] = v; });
+  // add quoted lines the standard table does not include
+  Object.entries(byKey).forEach(([k, m]) => {
+    if (!fairRows.find(f => f.key === k)) { const v = Object.values(m)[0];
+      fairRows.push({key: k, market: v.market, selection: v.selection, line: v.line, description: v.description, p_win: v.p_win, fair_price: v.fair_price, quotedOnly: true}); }
+  });
+  const order = Object.keys(MARKETS);
+  fairRows.sort((a, b) => order.indexOf(a.market) - order.indexOf(b.market) || (a.line ?? 0) - (b.line ?? 0));
+  const head = `<tr><th>Market</th><th>Selection</th><th class="num">Fair prob</th><th class="num">Fair odds</th>${books.map(b => `<th class="num">${esc(b)}</th>`).join("")}</tr>`;
+  const body = fairRows.map(f => {
+    const quotes = byKey[f.key] || {};
+    const cells = books.map(b => {
+      const q = quotes[b]; if (!q) return '<td class="num muted">·</td>';
+      const cls = q.flags.includes("opportunity") ? "pos" : q.edge < -0.08 ? "muted" : "";
+      return `<td class="num ${cls}" title="edge ${pct(q.edge)} vs fair ${odds(q.fair_price)}${q.book_margin != null ? " · book margin " + pct(q.book_margin) : ""}">${odds(q.price)}<div style="font-size:11px" class="${q.edge > 0 ? "pos" : "muted"}">${q.edge > 0 ? "+" : ""}${pct(q.edge)}</div></td>`;
+    }).join("");
+    return `<tr><td>${esc(MARKETS[f.market])}</td><td>${esc(f.description)}</td><td class="num">${pct(f.p_win)}</td><td class="num">${odds(f.fair_price)}</td>${cells}</tr>`;
+  }).join("");
+  $("#dlgBody").innerHTML = `<p class="hint">Each book's price with its edge (green = flagged value bet). A book is always judged against fair value
+    built from the <i>other</i> books, so its edge can differ slightly from the overall fair column. Hover a price for details.</p>
+    <div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+$("#dlgClose").onclick = () => $("#dlg").close();
+
+["#fEdge", "#fMarket", "#fBook", "#fText", "#fConsistent"].forEach(s => $(s).addEventListener("input", () => {
+  if (s === "#fEdge") $("#fEdge").dataset.touched = "1"; renderBets(); }));
+$("#mText").addEventListener("input", renderMatches);
+
+// ------------------------------------------------------------------ pricer
+async function runPricer() {
+  const body = {best_of: +$("#pBo").value, sigma: +$("#pSig").value || 0};
+  if ($("#pP").value.trim()) body.p_point = $("#pP").value.trim(); else { body.price_a = $("#pA").value; body.price_b = $("#pB").value; }
+  try {
+    const d = await api("/api/price", body);
+    const head = d.margin != null ? `<div class="tiles">
+      <div class="tile"><div class="k">Book margin</div><div class="v">${pct(d.margin, 2)}</div></div>
+      <div class="tile"><div class="k">Fair P(A wins match)</div><div class="v">${pct(d.fair_match_prob)}</div><div class="s">fair odds ${odds(1 / d.fair_match_prob)} / ${odds(1 / (1 - d.fair_match_prob))}</div></div>
+      <div class="tile"><div class="k">P(A wins a point)</div><div class="v">${d.p_point.toFixed(4)}</div><div class="s">game ${pct(d.p_game)}</div></div>
+      <div class="tile"><div class="k">Expected total points</div><div class="v">${d.expected_points}</div></div></div>`
+      : `<div class="tiles"><div class="tile"><div class="k">P(A wins match)</div><div class="v">${pct(d.p_match)}</div></div>
+      <div class="tile"><div class="k">P(A wins a game)</div><div class="v">${pct(d.p_game)}</div></div>
+      <div class="tile"><div class="k">Expected total points</div><div class="v">${d.expected_points}</div></div></div>`;
+    $("#pOut").innerHTML = head + '<div class="table-wrap"><table id="pTable"></table></div>';
+    renderTable($("#pTable"), [
+      {key: "market", label: "Market", html: r => esc(MARKETS[r.market])},
+      {key: "description", label: "Selection"},
+      {key: "p_win", label: "Win prob", num: true, html: r => pct(r.p_win)},
+      {key: "p_push", label: "Push", num: true, html: r => r.p_push ? pct(r.p_push) : ""},
+      {key: "fair_price", label: "Fair odds", num: true, html: r => odds(r.fair_price)},
+      {key: "min_price", label: "Need ≥ (3% edge)", num: true, nosort: true, html: r => r.p_win > 0 ? odds(1 + (0.03 + (1 - r.p_win - r.p_push)) / r.p_win) : "–"},
+    ], d.fair, {sortKey: null});
+  } catch (err) { $("#pOut").innerHTML = `<p class="neg">${esc(err.message)}</p>`; }
+}
+$("#pGo").onclick = runPricer;
+
+// ------------------------------------------------------------------ ratings
+async function loadRatings() {
+  const rows = await api("/api/ratings?min_matches=" + (+$("#rMin").value || 0));
+  const text = $("#rText").value.trim().toLowerCase();
+  renderTable($("#ratingsTable"), [
+    {key: "rank", label: "#", num: true, nosort: true, html: r => r.rank},
+    {key: "player", label: "Player"},
+    {key: "rating", label: "Rating", num: true, html: r => r.rating.toFixed(3)},
+    {key: "sd", label: "± sd", num: true, html: r => r.sd.toFixed(3)},
+    {key: "p_vs_avg", label: "P(point) v avg", num: true, html: r => pct(r.p_vs_avg, 2)},
+    {key: "matches", label: "Matches", num: true},
+    {key: "win_pct", label: "Win %", num: true, html: r => pct(r.win_pct)},
+    {key: "point_pct", label: "Points won", num: true, html: r => pct(r.point_pct)},
+  ], rows.map((r, i) => ({...r, rank: i + 1})).filter(r => !text || r.player.toLowerCase().includes(text)),
+  {sortKey: "rating", empty: "Load a results file to build ratings."});
+}
+$("#rText").addEventListener("input", loadRatings);
+$("#rMin").addEventListener("change", loadRatings);
+
+// ------------------------------------------------------------------ charts (inline SVG)
+function lineChart(points, {xLabel = "", yFmt = v => v, W = 760} = {}) {
+  const H = 260, L = 52, R = 12, T = 12, B = 28;
+  if (points.length < 2) return '<div class="empty">Not enough bets to chart.</div>';
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys); const pad = (y1 - y0) * .08 || 1; y0 -= pad; y1 += pad;
+  const sx = x => L + (x - x0) / (x1 - x0 || 1) * (W - L - R), sy = y => T + (y1 - y) / (y1 - y0) * (H - T - B);
+  const ticks = niceTicks(y0, y1, 5);
+  const grid = ticks.map(t => `<line class="gridline" x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}"/><text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${esc(yFmt(t))}</text>`).join("");
+  const d = points.map((p, i) => `${i ? "L" : "M"}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join("");
+  return `<div class="chart" data-chart="line" data-w="${W}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative profit by bet">
+    <g class="axis">${grid}<text x="${W - R}" y="${H - 6}" text-anchor="end">${esc(xLabel)}</text></g>
+    <line class="zero" x1="${L}" x2="${W - R}" y1="${sy(0)}" y2="${sy(0)}"/>
+    <path d="${d}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round"/>
+    <line class="xhair" y1="${T}" y2="${H - B}" stroke="var(--text-muted)" stroke-width="1" style="display:none"/>
+    <circle class="xdot" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2" style="display:none"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/>
+  </svg><div class="tooltip"></div></div>`;
+}
+function wireLineChart(root, points, fmt) {
+  const el = root.querySelector('[data-chart="line"]'); if (!el) return;
+  const svg = el.querySelector("svg"), tip = el.querySelector(".tooltip"), hair = svg.querySelector(".xhair"), dot = svg.querySelector(".xdot");
+  const W = +el.dataset.w, L = 52, R = 12, T = 12, H = 260, B = 28;
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys); const pad = (y1 - y0) * .08 || 1; y0 -= pad; y1 += pad;
+  svg.querySelector(".hit").addEventListener("mousemove", ev => {
+    const box = svg.getBoundingClientRect(), scale = W / box.width;
+    const x = x0 + ((ev.clientX - box.left) * scale - L) / (W - L - R) * (x1 - x0);
+    let best = points[0]; for (const p of points) if (Math.abs(p.x - x) < Math.abs(best.x - x)) best = p;
+    const px = L + (best.x - x0) / (x1 - x0 || 1) * (W - L - R), py = T + (y1 - best.y) / (y1 - y0) * (H - T - B);
+    hair.setAttribute("x1", px); hair.setAttribute("x2", px); hair.style.display = "";
+    dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.style.display = "";
+    tip.innerHTML = fmt(best); tip.style.display = "block";
+    const left = px / scale; tip.style.left = Math.min(left + 12, box.width - tip.offsetWidth - 4) + "px"; tip.style.top = (py / scale - 10) + "px";
+  });
+  svg.querySelector(".hit").addEventListener("mouseleave", () => { tip.style.display = "none"; hair.style.display = "none"; dot.style.display = "none"; });
+}
+function calibChart(buckets) {
+  const W = 420, H = 300, L = 44, R = 12, T = 12, B = 36, S = Math.min(W - L - R, H - T - B);
+  const sx = v => L + v * S, sy = v => T + (1 - v) * S;
+  const ticks = [0, .2, .4, .6, .8, 1];
+  const grid = ticks.map(t => `<line class="gridline" x1="${sx(0)}" x2="${sx(1)}" y1="${sy(t)}" y2="${sy(t)}"/>
+    <text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${t * 100}%</text><text x="${sx(t)}" y="${sy(0) + 16}" text-anchor="middle">${t * 100}%</text>`).join("");
+  const dots = buckets.map((b, i) => {
+    const x = sx(b.implied_devigged), y = sy(b.actual), e = b.se * S;
+    const lo = Math.max(0, b.actual - 1.96 * b.se), hi = Math.min(1, b.actual + 1.96 * b.se);
+    return `<g class="cdot" data-i="${i}"><line x1="${x}" x2="${x}" y1="${sy(hi)}" y2="${sy(lo)}" stroke="var(--text-muted)" stroke-width="1"/>
+      <circle cx="${x}" cy="${y}" r="5" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>
+      <circle cx="${x}" cy="${y}" r="14" fill="transparent"/></g>`;
+  }).join("");
+  return `<div class="chart" data-chart="calib"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Implied probability versus actual win rate">
+    <g class="axis">${grid}<text x="${sx(.5)}" y="${H - 4}" text-anchor="middle">Market probability (devigged)</text></g>
+    <line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(1)}" y2="${sy(1)}" stroke="var(--text-muted)" stroke-dasharray="4 4" stroke-width="1"/>
+    ${dots}</svg><div class="tooltip"></div></div>`;
+}
+function wireCalib(root, buckets) {
+  const el = root.querySelector('[data-chart="calib"]'); if (!el) return;
+  const tip = el.querySelector(".tooltip"), svg = el.querySelector("svg");
+  el.querySelectorAll(".cdot").forEach(g => {
+    g.addEventListener("mouseenter", () => {
+      const b = buckets[+g.dataset.i];
+      tip.innerHTML = `<b>${esc(b.bucket)}</b><br>market ${pct(b.implied_devigged)} · actual ${pct(b.actual)}<br>${b.n} selections`;
+      tip.style.display = "block";
+      const c = g.querySelector("circle").getBoundingClientRect(), box = el.getBoundingClientRect();
+      tip.style.left = Math.min(c.right - box.left + 6, box.width - tip.offsetWidth - 4) + "px"; tip.style.top = (c.top - box.top - 8) + "px";
+    });
+    g.addEventListener("mouseleave", () => tip.style.display = "none");
+  });
+}
+function niceTicks(lo, hi, n) {
+  const span = hi - lo, step0 = Math.pow(10, Math.floor(Math.log10(span / n))), err = span / n / step0;
+  const step = step0 * (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1);
+  const out = []; for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) out.push(+t.toFixed(10)); return out;
+}
+
+// ------------------------------------------------------------------ backtest
+$("#btGo").onclick = async () => {
+  const btn = $("#btGo"); btn.disabled = true; btn.textContent = "Running…";
+  $("#btOut").innerHTML = '<div class="loading">Replaying matches…</div>';
+  try {
+    const bt = await api("/api/backtest");
+    const p = bt.prediction, b = bt.betting;
+    const tiles = b.n ? `<div class="tiles">
+      <div class="tile"><div class="k">Bets</div><div class="v">${b.n.toLocaleString()}</div><div class="s">${b.staked}u staked · avg odds ${b.avg_price}</div></div>
+      <div class="tile"><div class="k">ROI</div><div class="v ${Math.abs(b.roi) < 2 * b.roi_se ? "" : b.roi > 0 ? "pos" : "neg"}">${pct(b.roi, 2)}</div><div class="s">± ${pct(b.roi_se, 2)} s.e.${Math.abs(b.roi) < 2 * b.roi_se ? " · not significant" : ""}</div></div>
+      <div class="tile"><div class="k">Closing-line value</div><div class="v ${b.avg_clv > 0 ? "pos" : "neg"}">${pct(b.avg_clv, 2)}</div><div class="s">${pct(b.pct_positive_clv)} of bets beat the close</div></div>
+      <div class="tile"><div class="k">Claimed edge</div><div class="v">${pct(b.avg_edge, 2)}</div><div class="s">compare with CLV: the gap is model overconfidence</div></div>
+      <div class="tile"><div class="k">Max drawdown</div><div class="v">${b.max_drawdown}u</div><div class="s">bankroll ${bt.config.backtest.bankroll}u, no compounding</div></div>
+    </div>` : '<div class="empty">No bets were placed. The odds file needs open/close snapshots with match_ids that match the results.</div>';
+    const curvePts = b.n ? b.curve.map(c => ({x: c.i + 1, y: c.profit, t: c.t})) : [];
+    const breakdown = (obj, label) => `<div class="table-wrap"><table><thead><tr><th>${label}</th><th class="num">Bets</th><th class="num">Staked</th><th class="num">Profit</th><th class="num">ROI</th><th class="num">CLV</th></tr></thead><tbody>` +
+      Object.entries(obj).map(([k, v]) => `<tr><td>${esc(MARKETS[k] || k)}</td><td class="num">${v.n}</td><td class="num">${v.staked}</td><td class="num ${v.profit >= 0 ? "pos" : "neg"}">${v.profit}</td><td class="num">${pct(v.roi, 2)}</td><td class="num">${pct(v.avg_clv, 2)}</td></tr>`).join("") + "</tbody></table></div>";
+    const predTable = p.n ? `<div class="table-wrap"><table><thead><tr><th>Model</th><th class="num">Log loss</th><th class="num">Brier</th><th class="num">Accuracy</th></tr></thead><tbody>` +
+      [["market", "Closing market"], ["blend", "Market + ratings"], ["ratings", "Point ratings"], ["elo", "Win/loss Elo"]].map(([k, l]) =>
+        `<tr><td>${l}</td><td class="num">${p[k].log_loss}</td><td class="num">${p[k].brier}</td><td class="num">${pct(p[k].accuracy)}</td></tr>`).join("") +
+      `</tbody></table></div><p class="hint" style="margin-top:8px">${p.n.toLocaleString()} matches where both players had history. Lower is better. Beating the closing market here is rare and worth a lot.</p>` : '<div class="empty">Need results with matching odds.</div>';
+    const cb = bt.calibration.buckets;
+    const calibTable = `<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Bucket</th><th class="num">n</th><th class="num">Proportional</th><th class="num">Devigged</th><th class="num">Actual</th><th class="num">± s.e.</th></tr></thead><tbody>` +
+      cb.map(x => `<tr><td>${esc(x.bucket)}</td><td class="num">${x.n}</td><td class="num">${pct(x.implied_multiplicative)}</td><td class="num">${pct(x.implied_devigged)}</td><td class="num">${pct(x.actual)}</td><td class="num">${pct(x.se)}</td></tr>`).join("") + "</tbody></table></div>";
+    $("#btOut").innerHTML = tiles +
+      (b.n ? `<h3>Cumulative profit (units)</h3>${lineChart(curvePts, {xLabel: "bet number", yFmt: v => v + "u", W: Math.max(320, $("#btOut").clientWidth)})}` : "") +
+      `<div class="grid2" style="margin-top:12px"><div><h3>Prediction quality</h3>${predTable}</div>
+       <div><h3>Market calibration (favourite-longshot check)</h3>${cb.length ? calibChart(cb) + calibTable : '<div class="empty">No closing odds.</div>'}</div></div>` +
+      (b.n ? `<div class="grid2"><div><h3>By market</h3>${breakdown(b.by_market, "Market")}</div><div><h3>By book</h3>${breakdown(b.by_book, "Book")}</div></div>` : "");
+    wireLineChart($("#btOut"), curvePts, pt => `bet ${pt.x}<br><b>${pt.y}u</b><br><span class="muted">${esc(when(pt.t))}</span>`);
+    wireCalib($("#btOut"), cb);
+  } catch (err) { $("#btOut").innerHTML = `<p class="neg">${esc(err.message)}</p>`; }
+  btn.disabled = false; btn.textContent = "Run backtest";
+};
+
+// ------------------------------------------------------------------ data + settings
+async function upload(kind, file) {
+  $("#dataMsg").textContent = `Loading ${file.name}…`;
+  try {
+    STATE = await api("/api/upload", {kind, csv: await file.text()});
+    $("#dataMsg").textContent = `Loaded ${file.name}.`;
+    await refresh();
+  } catch (err) { $("#dataMsg").innerHTML = `<span class="neg">${esc(err.message)}</span>`; }
+}
+$("#upResults").onchange = e => e.target.files[0] && upload("results", e.target.files[0]);
+$("#upOdds").onchange = e => e.target.files[0] && upload("odds", e.target.files[0]);
+$("#demoBtn").onclick = async () => { $("#dataMsg").textContent = "Generating demo…"; await api("/api/demo", {}); $("#dataMsg").textContent = "Synthetic demo loaded."; refresh(); };
+$("#clearBtn").onclick = async () => { await api("/api/clear", {}); $("#dataMsg").textContent = "Cleared."; refresh(); };
+
+function renderErrors() {
+  $("#errors").innerHTML = STATE.errors.map(esc).join("<br>") + (STATE.error_count > STATE.errors.length ? `<br>… ${STATE.error_count - STATE.errors.length} more` : "");
+}
+
+const SETTINGS = [
+  ["min_edge", "Min edge (fraction)", "number", .005],
+  ["max_edge", "Sanity cap on edge", "number", .01],
+  ["min_odds", "Min odds", "number", .05],
+  ["max_odds", "Max odds", "number", .5],
+  ["model_weight", "Ratings weight (0–1)", "number", .05],
+  ["min_model_matches", "Matches before ratings count", "number", 1],
+  ["derivative_consensus_weight", "Derivatives: consensus weight", "number", .05],
+  ["devig_method", "Margin removal", "select", ["power", "shin", "multiplicative", "additive"]],
+  ["sharp_books", "Sharp books (comma list)", "text"],
+  ["sharp_weight", "Sharp book weight", "number", .5],
+  ["min_books", "Other books needed", "number", 1],
+  ["kelly_multiplier", "Kelly fraction", "number", .05],
+  ["max_stake", "Max stake (fraction)", "number", .005],
+  ["game_sigma", "Game sigma (blank = auto)", "number", .01],
+  ["bet_into_sharp", "Flag sharp-book prices", "select", ["false", "true"]],
+];
+function renderSettings() {
+  const c = STATE.config;
+  $("#settings").innerHTML = SETTINGS.map(([k, label, type, extra]) => {
+    let v = c[k]; if (Array.isArray(v)) v = v.join(", ");
+    if (k === "game_sigma" && STATE.auto_sigma) v = "";
+    const input = type === "select"
+      ? `<select data-k="${k}">${extra.map(o => `<option ${String(v) === o ? "selected" : ""}>${o}</option>`).join("")}</select>`
+      : `<input data-k="${k}" type="${type}" ${type === "number" ? `step="${extra}"` : ""} value="${esc(v)}" ${k === "game_sigma" ? `placeholder="auto (${esc(c.game_sigma)})"` : ""}>`;
+    return `<label>${esc(label)}${input}</label>`;
+  }).join("");
+  const fit = STATE.sigma_fit;
+  $("#cfgMsg").textContent = fit && fit.matches ? `sigma fit: ${fit.sigma} from ${fit.matches.toLocaleString()} matches` : "";
+}
+$("#saveCfg").onclick = async () => {
+  const body = {};
+  document.querySelectorAll("#settings [data-k]").forEach(el => {
+    const k = el.dataset.k, v = el.value.trim();
+    if (k === "game_sigma") { if (v === "") body.auto_sigma = true; else body.game_sigma = +v; return; }
+    if (k === "bet_into_sharp") { body[k] = v === "true"; return; }
+    const cur = STATE.config[k];
+    const curStr = Array.isArray(cur) ? cur.join(", ") : String(cur);
+    if (v !== curStr) body[k] = typeof cur === "number" ? +v : v;
+  });
+  $("#cfgMsg").textContent = "Applying…";
+  try { await api("/api/config", body); await refresh(); $("#cfgMsg").textContent = "Applied."; }
+  catch (err) { $("#cfgMsg").innerHTML = `<span class="neg">${esc(err.message)}</span>`; }
+};
+
+refresh().then(() => { $("#pSig").value = STATE.config.game_sigma; return runPricer(); }).catch(err => { $("#status").innerHTML = `<span class="badge warn">${esc(err.message)}</span>`; });
+</script>
+</body>
+</html>
